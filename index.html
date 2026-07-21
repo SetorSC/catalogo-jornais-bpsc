@@ -344,7 +344,7 @@
       <div class="info-section">
         <h3>Como usar</h3>
         <p>Utilize a barra de busca para encontrar um jornal pelo nome. Os filtros na coluna lateral permitem refinar por município, periodicidade, idioma, intervalo de anos e tipo de suporte (digital ou microfilme). Clique em qualquer card para expandir e ver a disponibilidade mês a mês.</p>
-        <p>Títulos com o link <strong style="color:var(--esm)">↗ Abrir na Hemeroteca Digital</strong> podem ser acessados diretamente no site da Hemeroteca Digital.</p>
+        <p>Títulos com o link <strong style="color:var(--esm)">↗ Abrir na Hemeroteca Digital</strong> podem ser acessados diretamente no site da Hemeroteca Digital. Os demais títulos digitalizados apresentam o botão <strong style="color:var(--esm)">🔍 Buscar na Hemeroteca Digital</strong>, que abre a Hemeroteca já com o título pesquisado.</p>
       </div>
       <div class="info-section">
         <h3>Especificidades do acervo</h3>
@@ -1166,7 +1166,9 @@ function renderCards() {
         <div class="detail-row"><span class="detail-lbl">Idioma</span><span class="detail-val">${escHtml(j.i || '-')}</span></div>
         <div class="detail-row"><span class="detail-lbl">Periodicidade</span><span class="detail-val">${escHtml(j.p || '-')}</span></div>
         <div class="detail-row full"><span class="detail-lbl">Disponibilidade do acervo</span><div class="disp-block">${renderDisponibilidade(j.raw)}</div></div>
-        ${j.url ? `<a class="hemeroteca-link" href="${j.url}" target="_blank" rel="noopener">↗ Abrir na Hemeroteca Digital</a>` : ''}
+        ${j.url
+          ? `<a class="hemeroteca-link" href="${j.url}" target="_blank" rel="noopener">↗ Abrir na Hemeroteca Digital</a>`
+          : (j.d ? `<a class="hemeroteca-link" href="${hemerotecaBusca(j.t)}" target="_blank" rel="noopener">🔍 Buscar na Hemeroteca Digital</a>` : '')}
       </div>` : ''}
     </div>`;
   }).join('');
@@ -1295,6 +1297,12 @@ function buscaCombina(query, texto) {
 
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Link para a tela de busca geral da Hemeroteca Digital, usado nos títulos
+// digitalizados que ainda não possuem link direto (bib=).
+function hemerotecaBusca(titulo) {
+  return 'https://hemeroteca2.cultura.sc.gov.br/docreader/docmulti.aspx?bib=acervo';
 }
 
 function populateLocSelect() {
