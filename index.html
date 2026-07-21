@@ -860,6 +860,12 @@
           <input type="checkbox" id="chk-micro"> Microfilmado
         </label>
         <label class="checkbox-item">
+          <input type="checkbox" id="chk-papel"> Só em papel/microfilme
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="chk-papel-extra"> Papel além do digitalizado
+        </label>
+        <label class="checkbox-item">
           <input type="checkbox" id="chk-interditado"> Com edições interditadas
         </label>
       </div>
@@ -1048,6 +1054,8 @@ function applyFilters() {
   const yExact = parseInt(document.getElementById('year-from').value) || 0;
   const onlyDigital = document.getElementById('chk-digital').checked;
   const onlyMicro = document.getElementById('chk-micro').checked;
+  const onlyPapel = document.getElementById('chk-papel').checked;
+  const onlyPapelExtra = document.getElementById('chk-papel-extra').checked;
   const onlyInterditado = document.getElementById('chk-interditado').checked;
   const sort = document.getElementById('sort-select').value;
 
@@ -1071,6 +1079,8 @@ function applyFilters() {
       }
     }
     if (onlyMicro && !j.m) return false;
+    if (onlyPapel && j.d) return false;
+    if (onlyPapelExtra && !(j.raw || '').toLowerCase().includes('edições em papel')) return false;
     if (onlyInterditado && !(j.raw || '').includes('INTERDITADO')) return false;
     return true;
   });
@@ -1329,6 +1339,8 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   document.getElementById('year-from').value = '';
   document.getElementById('chk-digital').checked = false;
   document.getElementById('chk-micro').checked = false;
+  document.getElementById('chk-papel').checked = false;
+  document.getElementById('chk-papel-extra').checked = false;
   document.getElementById('chk-interditado').checked = false;
   applyFilters();
 });
