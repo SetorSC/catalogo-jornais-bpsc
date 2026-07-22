@@ -263,6 +263,16 @@
   .btn-secondary { background: transparent; color: var(--text-secondary); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 9px 18px; font-size: 14px; font-family: inherit; cursor: pointer; }
   .btn-secondary:hover { background: var(--bg); }
   .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .tag.pendente { background: #FFF3D6; color: #8A5A00; border-color: rgba(138,90,0,0.25); }
+  .pend-cabecalho { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .pend-titulo { font-size: 13px; font-weight: 700; color: #8A5A00; }
+  .pend-aviso { font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 10px; }
+  #pend-painel { margin-top: 18px; padding: 14px 16px; border: 1px solid rgba(138,90,0,0.28); border-radius: var(--radius); background: #FFFBF2; }
+  .pend-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px; }
+  .pend-nome { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .pend-local { display: block; font-size: 12px; font-weight: 400; color: var(--text-secondary); }
+  .pend-remover { background: none; border: none; color: var(--carmim); font-size: 15px; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+  .pend-remover:hover { background: var(--carmim-light); }
   .success-msg { display: none; background: var(--esm-light); color: var(--esm-dark); border-radius: var(--radius); padding: 12px 16px; font-size: 14px; margin-top: 12px; }
 
   /* Admin / inserir */
@@ -789,9 +799,17 @@
         </div>
         <div class="form-actions">
           <button class="btn-secondary" onclick="limparFormAdmin()">Limpar</button>
-          <button class="btn-primary" onclick="salvarTitulo()">Salvar novo título</button>
+          <button class="btn-primary" onclick="salvarTitulo()">Salvar como pendente</button>
         </div>
-        <div class="success-msg" id="admin-ok">Título adicionado ao catálogo com sucesso.</div>
+        <div class="success-msg" id="admin-ok">Título gravado neste navegador como <strong>pendente</strong>. Ele ainda não está publicado: exporte-o abaixo para que seja embutido no catálogo.</div>
+        <div id="pend-painel" style="display:none">
+          <div class="pend-cabecalho">
+            <span class="pend-titulo">⏳ <span id="pend-count"></span></span>
+            <button class="report-btn" onclick="exportarPendentes()">⬇ Exportar pendentes (.json)</button>
+          </div>
+          <p class="pend-aviso">Estes títulos estão gravados apenas neste navegador e <strong>não aparecem para os visitantes</strong>. Exporte o arquivo e encaminhe-o para que sejam incluídos no catálogo publicado. Limpar os dados de navegação apaga esta lista.</p>
+          <div id="pend-lista"></div>
+        </div>
       </div>
 
     </div>
@@ -920,6 +938,152 @@
 const DATA = JSON.parse(document.getElementById("jd").textContent);
 DATA.forEach((j, i) => { j._uid = i; });
 let nextUid = DATA.length;
+
+// ---------------------------------------------------------------------------
+// TÍTULOS PENDENTES
+// Registros inseridos pelo painel ficam gravados no navegador (localStorage) e
+// são recarregados a cada abertura, para que o trabalho de digitação não se
+// perca. ATENÇÃO: isto NÃO publica nada. O catálogo é um arquivo estático; os
+// títulos só passam a valer para os visitantes depois de exportados aqui e
+// embutidos no index.html publicado.
+// ---------------------------------------------------------------------------
+const PEND_KEY = 'bpsc_titulos_pendentes';
+
+// ---------------------------------------------------------------------------
+// PLANILHA DE INCLUSÕES ("Jornais Inclusão")
+// Títulos novos podem ser cadastrados numa planilha do Google, sem precisar
+// regenerar este arquivo. O catálogo lê a planilha ao abrir e soma os títulos
+// aos que já estão embutidos aqui. Se a planilha estiver fora do ar, vazia ou
+// mal preenchida, o catálogo continua funcionando normalmente com o acervo
+// publicado — a leitura nunca derruba a página.
+//
+// Colunas esperadas (linha 1 = cabeçalho, exatamente nesta ordem):
+//   A Título · B Subtítulo · C Município · D Periodicidade · E Idioma
+//   F Digitalizado · G Microfilme · H Disponibilidade · I Link · J Data de inclusão
+// ---------------------------------------------------------------------------
+// Endereço gerado por "Arquivo > Compartilhar > Publicar na web" (formato CSV).
+// Precisa ser o endereço PUBLICADO (com /d/e/2PACX-.../pub): o link comum de
+// compartilhamento não permite leitura a partir de outro site.
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQEVd92vSEz19y7M9ecENJwlTKARh4J_KDF7r_o9GPfOnHmDXzwXFYgxGh0ZnN2_GBYHEtR7VV-j1Nl/pub?output=csv';
+
+// Analisador de CSV que respeita aspas, vírgulas e quebras de linha dentro da
+// célula (a coluna Disponibilidade costuma ter várias linhas).
+function parseCSV(texto) {
+  const linhas = [];
+  let campo = '', linha = [], aspas = false;
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i];
+    if (aspas) {
+      if (c === '"') {
+        if (texto[i + 1] === '"') { campo += '"'; i++; }
+        else aspas = false;
+      } else campo += c;
+    } else if (c === '"') aspas = true;
+    else if (c === ',') { linha.push(campo); campo = ''; }
+    else if (c === '\n') { linha.push(campo); linhas.push(linha); linha = []; campo = ''; }
+    else if (c !== '\r') campo += c;
+  }
+  if (campo !== '' || linha.length) { linha.push(campo); linhas.push(linha); }
+  return linhas;
+}
+
+function ehSim(v) {
+  return /^(sim|s|x|1|true|verdadeiro)$/i.test(String(v || '').trim());
+}
+
+function linhaParaRegistro(col) {
+  const t = (col[0] || '').trim();
+  const l = (col[2] || '').trim();
+  const disp = (col[7] || '').trim();
+  if (!t || !l) return null;               // título e município são obrigatórios
+  const anos = [];
+  disp.split('\n').forEach(ln => {
+    if (ln.startsWith('🔴') || ln.startsWith('⚠')) return;
+    (ln.match(/\b(1[789]\d\d|20[0-9]\d)\b/g) || []).forEach(a => anos.push(parseInt(a)));
+  });
+  const y  = anos.length ? Math.min(...anos) : null;
+  const ye = anos.length ? Math.max(...anos) : null;
+  return {
+    t: t.toUpperCase(),
+    s: (col[1] || '').trim(),
+    l: l,
+    p: (col[3] || '').trim() || '-',
+    i: (col[4] || '').trim() || 'Português',
+    d: ehSim(col[5]),
+    m: ehSim(col[6]),
+    y: y, ye: ye,
+    disp: y ? (ye && ye !== y ? `${y}–${ye}` : String(y)) : '-',
+    raw: disp,
+    url: (col[8] || '').trim(),
+    add: (col[9] || '').trim() || null,
+    _sheet: true
+  };
+}
+
+async function carregarPlanilha() {
+  let texto;
+  try {
+    const resp = await fetch(SHEET_URL, { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    texto = await resp.text();
+  } catch (e) {
+    console.warn('Planilha de inclusões indisponível; usando apenas o acervo publicado.', e);
+    return;
+  }
+  let novos = [];
+  try {
+    const linhas = parseCSV(texto);
+    if (linhas.length < 2) return;         // só cabeçalho, ou vazia
+    novos = linhas.slice(1).map(linhaParaRegistro).filter(Boolean);
+  } catch (e) {
+    console.warn('Não foi possível interpretar a planilha de inclusões.', e);
+    return;
+  }
+  // Não duplica o que já está embutido no arquivo nem o que veio dos pendentes.
+  const jaExiste = new Set(DATA.map(j => normalizarTexto(j.t) + '|' + normalizarTexto(j.l)));
+  const aIncluir = [];
+  novos.forEach(r => {
+    const chave = normalizarTexto(r.t) + '|' + normalizarTexto(r.l);
+    if (jaExiste.has(chave)) return;
+    jaExiste.add(chave);
+    r._uid = nextUid++;
+    aIncluir.push(r);
+  });
+  if (!aIncluir.length) return;
+  DATA.unshift(...aIncluir);
+  populateLocSelect();
+  populateTituloDatalist();
+  applyFilters();
+  console.info(`Planilha de inclusões: ${aIncluir.length} título(s) carregado(s).`);
+}
+
+function lerPendentes() {
+  try {
+    const bruto = JSON.parse(localStorage.getItem(PEND_KEY) || '[]');
+    return Array.isArray(bruto) ? bruto : [];
+  } catch (e) {
+    console.warn('Não foi possível ler os títulos pendentes:', e);
+    return [];
+  }
+}
+
+function gravarPendentes(arr) {
+  try {
+    localStorage.setItem(PEND_KEY, JSON.stringify(arr));
+    return true;
+  } catch (e) {
+    alert('Não foi possível gravar o título neste navegador. Se estiver em uma janela anônima ou com o armazenamento cheio, exporte o que já inseriu antes de continuar.');
+    return false;
+  }
+}
+
+// Recoloca os pendentes no catálogo em memória, no topo da lista.
+(function carregarPendentes() {
+  const pend = lerPendentes();
+  if (!pend.length) return;
+  const recs = pend.map(p => Object.assign({}, p, { _pend: true, _uid: nextUid++ }));
+  DATA.unshift(...recs);
+})();
 
 let listaConsulta = new Set();
 try {
@@ -1171,6 +1335,7 @@ function renderCards() {
         <span class="tag lugar">📍 ${escHtml(j.l)}</span>
         ${j.disp && j.disp !== '-' ? `<span class="tag data">🗓 ${escHtml(j.disp)}</span>` : ''}
         ${j.p && j.p !== '-' ? `<span class="tag periodicidade">🔁 ${escHtml(j.p)}</span>` : ''}
+        ${j._pend ? `<span class="tag pendente">⏳ Não publicado</span>` : ''}
         ${j.d ? `<span class="tag digital">✓ Digital</span>` : ''}
         ${j.m ? `<span class="tag microfilme">🎞 Microfilme</span>` : ''}
       </div>
@@ -1371,7 +1536,9 @@ document.getElementById('reset-btn').addEventListener('click', () => {
 });
 
 populateLocSelect();
+renderPendentes();
 applyFilters();
+carregarPlanilha();
 atualizarBadgeLista();
 
 const MODAL_MAP = {
@@ -1680,6 +1847,14 @@ function salvarTitulo() {
   const yEnd   = anos.length ? Math.max(...anos) : null;
   const resumo = yStart ? (yEnd && yEnd !== yStart ? `${yStart}–${yEnd}` : String(yStart)) : '-';
 
+  // Evita cadastrar duas vezes o mesmo título no mesmo município.
+  const dup = DATA.find(j => normalizarTexto(j.t) === normalizarTexto(tituloPad)
+                          && normalizarTexto(j.l) === normalizarTexto(local));
+  if (dup) {
+    const ondeEsta = dup._pend ? 'já está na sua lista de pendentes' : 'já consta no catálogo publicado';
+    if (!confirm(`"${dup.t}" (${dup.l}) ${ondeEsta}.\n\nDeseja cadastrar assim mesmo, criando um registro duplicado?`)) return;
+  }
+
   const novo = {
     t: tituloPad, s: subPad, l: local.trim(),
     p: per === '-' ? '-' : per,
@@ -1690,16 +1865,72 @@ function salvarTitulo() {
     disp: resumo,
     raw: disp,
     url: url,
-    _addedAt: Date.now(),
-    add: new Date().toISOString().slice(0, 10),
-    _uid: nextUid++
+    add: new Date().toISOString().slice(0, 10)
   };
 
-  DATA.unshift(novo);
+  // Grava primeiro: se o navegador recusar, não finge que salvou.
+  const pend = lerPendentes();
+  pend.push(novo);
+  if (!gravarPendentes(pend)) return;
+
+  DATA.unshift(Object.assign({}, novo, { _pend: true, _addedAt: Date.now(), _uid: nextUid++ }));
   document.getElementById('admin-ok').style.display = 'block';
   limparFormAdmin();
   populateTituloDatalist();
+  renderPendentes();
   applyFilters();
+}
+
+// --------------------------------------------------------------------------
+// Painel de pendentes: revisar, exportar e remover.
+// --------------------------------------------------------------------------
+function renderPendentes() {
+  const painel = document.getElementById('pend-painel');
+  const lista  = document.getElementById('pend-lista');
+  if (!painel || !lista) return;
+  const pend = lerPendentes();
+  if (!pend.length) { painel.style.display = 'none'; return; }
+  painel.style.display = 'block';
+  document.getElementById('pend-count').textContent =
+    pend.length === 1 ? '1 título aguardando publicação' : `${pend.length} títulos aguardando publicação`;
+  lista.innerHTML = pend.map((p, i) => `<div class="pend-item">
+      <span class="pend-nome">${escHtml(p.t)}<span class="pend-local">${escHtml(p.l)}${p.disp && p.disp !== '-' ? ' · ' + escHtml(p.disp) : ''}</span></span>
+      <button type="button" class="pend-remover" onclick="removerPendente(${i})" title="Remover este título pendente">✕</button>
+    </div>`).join('');
+}
+
+function removerPendente(i) {
+  const pend = lerPendentes();
+  if (i < 0 || i >= pend.length) return;
+  const alvo = pend[i];
+  if (!confirm(`Remover "${alvo.t}" da lista de pendentes?\n\nSe ele ainda não foi exportado e publicado, os dados digitados serão perdidos.`)) return;
+  pend.splice(i, 1);
+  if (!gravarPendentes(pend)) return;
+  const idx = DATA.findIndex(j => j._pend && j.t === alvo.t && j.l === alvo.l);
+  if (idx !== -1) DATA.splice(idx, 1);
+  renderPendentes();
+  populateTituloDatalist();
+  applyFilters();
+}
+
+function exportarPendentes() {
+  const pend = lerPendentes();
+  if (!pend.length) { alert('Não há títulos pendentes para exportar.'); return; }
+  const pacote = {
+    catalogo: 'Catálogo de Jornais Catarinenses',
+    geradoEm: new Date().toISOString(),
+    total: pend.length,
+    titulos: pend
+  };
+  const blob = new Blob([JSON.stringify(pacote, null, 2)], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `titulos-pendentes-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 const GFORM_ACTION = 'https://docs.google.com/forms/d/e/1FAIpQLSc1Kls9k85-xISFVKfXkzLbs7fHP-uRghRu_4dLh3w2mK8GKw/formResponse';
