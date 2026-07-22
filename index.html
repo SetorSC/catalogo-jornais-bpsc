@@ -264,6 +264,7 @@
   .btn-secondary:hover { background: var(--bg); }
   .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
   .tag.pendente { background: #FFF3D6; color: #8A5A00; border-color: rgba(138,90,0,0.25); }
+  .admin-aviso { font-size: 12px; line-height: 1.55; color: #8A5A00; background: #FFFBF2; border: 1px solid rgba(138,90,0,0.28); border-radius: var(--radius); padding: 10px 12px; margin: 0 0 18px; }
   .pend-cabecalho { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
   .pend-titulo { font-size: 13px; font-weight: 700; color: #8A5A00; }
   .pend-aviso { font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 10px; }
@@ -650,9 +651,10 @@
 
       <div class="admin-form" id="admin-form">
         <div class="admin-header">
-          <h3>Adicionar nova edição a título existente</h3>
+          <h3>1 · Adicionar nova edição a título existente</h3>
           <button class="logout-btn" onclick="doLogout()">Sair</button>
         </div>
+        <p class="admin-aviso">⚠ <strong>As seções 1 e 2 são apenas pré-visualização:</strong> alterações feitas aqui somem ao recarregar a página e não chegam aos visitantes. Para incluir títulos ou acrescentar edições de forma definitiva, use a <strong>planilha “Jornais Inclusão”</strong>. Cada seção abaixo tem o seu próprio botão — confira o número antes de salvar.</p>
         <div class="form-group">
           <label class="form-label">Título já cadastrado</label>
           <input type="text" class="form-input" id="edicao-titulo-busca" placeholder="Digite para buscar um título existente..." list="lista-titulos" oninput="selecionarTituloExistente()">
@@ -666,11 +668,11 @@
         </div>
         <div class="form-actions" style="border-top:none;padding-top:0;">
           <button class="btn-secondary" onclick="verificarHemeroteca()">↗ Verificar na Hemeroteca Digital</button>
-          <button class="btn-primary" onclick="adicionarEdicao()">Adicionar edição</button>
+          <button class="btn-primary" onclick="adicionarEdicao()">Adicionar edição (seção 1)</button>
         </div>
         <div class="success-msg" id="edicao-ok">Edição adicionada ao título com sucesso.</div>
 
-        <h3 style="margin-top:28px">Alterar título existente</h3>
+        <h3 style="margin-top:28px">2 · Alterar título existente</h3>
         <div class="form-group">
           <label class="form-label">Buscar título para alterar</label>
           <input type="text" class="form-input" id="edit-busca" placeholder="Digite para buscar um título existente..." list="lista-titulos">
@@ -737,7 +739,7 @@
           <div class="success-msg" id="edit-ok">Título alterado com sucesso.</div>
         </div>
 
-        <h3 style="margin-top:28px">Ou cadastrar título totalmente novo</h3>
+        <h3 style="margin-top:28px">3 · Cadastrar título totalmente novo</h3>
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Título *</label>
@@ -799,7 +801,7 @@
         </div>
         <div class="form-actions">
           <button class="btn-secondary" onclick="limparFormAdmin()">Limpar</button>
-          <button class="btn-primary" onclick="salvarTitulo()">Salvar como pendente</button>
+          <button class="btn-primary" onclick="salvarTitulo()">Salvar título novo (seção 3)</button>
         </div>
         <div class="success-msg" id="admin-ok">Título gravado neste navegador como <strong>pendente</strong>. Ele ainda não está publicado: exporte-o abaixo para que seja embutido no catálogo.</div>
         <div id="pend-painel" style="display:none">
@@ -987,6 +989,20 @@ function parseCSV(texto) {
   return linhas;
 }
 
+// Recalcula ano inicial/final e o período exibido a partir das linhas de
+// disponibilidade do registro.
+function recalcularAnos(rec) {
+  const anos = [];
+  String(rec.raw || '').split('\n').forEach(ln => {
+    if (ln.startsWith('🔴') || ln.startsWith('⚠')) return;
+    (ln.match(/\b(1[789]\d\d|20[0-9]\d)\b/g) || []).forEach(a => anos.push(parseInt(a)));
+  });
+  if (!anos.length) return;
+  rec.y = Math.min(...anos);
+  rec.ye = Math.max(...anos);
+  rec.disp = (rec.y === rec.ye) ? String(rec.y) : `${rec.y}–${rec.ye}`;
+}
+
 function ehSim(v) {
   return /^(sim|s|x|1|true|verdadeiro)$/i.test(String(v || '').trim());
 }
@@ -1039,22 +1055,50 @@ async function carregarPlanilha() {
     console.warn('Não foi possível interpretar a planilha de inclusões.', e);
     return;
   }
-  // Não duplica o que já está embutido no arquivo nem o que veio dos pendentes.
-  const jaExiste = new Set(DATA.map(j => normalizarTexto(j.t) + '|' + normalizarTexto(j.l)));
+  // Se o título já existe (mesmo nome e município), a planilha ACRESCENTA as
+  // edições ao registro existente em vez de criar um duplicado. É assim que se
+  // cadastra "chegaram novos exemplares de um jornal que já está no catálogo".
+  const indice = new Map();
+  DATA.forEach((j, i) => indice.set(normalizarTexto(j.t) + '|' + normalizarTexto(j.l), i));
+
   const aIncluir = [];
+  let atualizados = 0;
+
   novos.forEach(r => {
     const chave = normalizarTexto(r.t) + '|' + normalizarTexto(r.l);
-    if (jaExiste.has(chave)) return;
-    jaExiste.add(chave);
-    r._uid = nextUid++;
-    aIncluir.push(r);
+    const pos = indice.get(chave);
+
+    if (pos === undefined) {
+      r._uid = nextUid++;
+      indice.set(chave, DATA.length + aIncluir.length);
+      aIncluir.push(r);
+      return;
+    }
+
+    // --- acréscimo de edições a um título já existente ---
+    const alvo = DATA[pos];
+    const existentes = new Set(String(alvo.raw || '').split('\n').map(s => s.trim()).filter(Boolean));
+    const linhasNovas = String(r.raw || '').split('\n').map(s => s.trim())
+                          .filter(ln => ln && !existentes.has(ln));
+    let mudou = false;
+    if (linhasNovas.length) {
+      alvo.raw = (alvo.raw ? alvo.raw + '\n' : '') + linhasNovas.join('\n');
+      recalcularAnos(alvo);
+      mudou = true;
+    }
+    if (r.d && !alvo.d) { alvo.d = true; mudou = true; }
+    if (r.m && !alvo.m) { alvo.m = true; mudou = true; }
+    if (r.url && r.url !== alvo.url) { alvo.url = r.url; mudou = true; }
+    if (r.s && !alvo.s) { alvo.s = r.s; mudou = true; }
+    if (mudou) { alvo._sheet = true; if (r.add) alvo.add = r.add; atualizados++; }
   });
-  if (!aIncluir.length) return;
-  DATA.unshift(...aIncluir);
+
+  if (aIncluir.length) DATA.unshift(...aIncluir);
+  if (!aIncluir.length && !atualizados) return;
   populateLocSelect();
   populateTituloDatalist();
   applyFilters();
-  console.info(`Planilha de inclusões: ${aIncluir.length} título(s) carregado(s).`);
+  console.info(`Planilha: ${aIncluir.length} título(s) novo(s), ${atualizados} título(s) atualizado(s).`);
 }
 
 function lerPendentes() {
