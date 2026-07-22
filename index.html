@@ -264,6 +264,8 @@
   .btn-secondary:hover { background: var(--bg); }
   .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
   .tag.pendente { background: #FFF3D6; color: #8A5A00; border-color: rgba(138,90,0,0.25); }
+  #form-cta { border: 1px solid var(--esm); background: var(--esm-xlight); border-radius: var(--radius); padding: 14px 16px; margin: 0 0 14px; }
+  .form-cta-txt { font-size: 13px; line-height: 1.55; color: var(--esm-dark); margin: 0 0 10px; }
   .admin-aviso { font-size: 12px; line-height: 1.55; color: #8A5A00; background: #FFFBF2; border: 1px solid rgba(138,90,0,0.28); border-radius: var(--radius); padding: 10px 12px; margin: 0 0 18px; }
   .pend-cabecalho { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
   .pend-titulo { font-size: 13px; font-weight: 700; color: #8A5A00; }
@@ -654,7 +656,11 @@
           <h3>1 · Adicionar nova edição a título existente</h3>
           <button class="logout-btn" onclick="doLogout()">Sair</button>
         </div>
-        <p class="admin-aviso">⚠ <strong>As seções 1 e 2 são apenas pré-visualização:</strong> alterações feitas aqui somem ao recarregar a página e não chegam aos visitantes. Para incluir títulos ou acrescentar edições de forma definitiva, use a <strong>planilha “Jornais Inclusão”</strong>. Cada seção abaixo tem o seu próprio botão — confira o número antes de salvar.</p>
+        <div id="form-cta" style="display:none">
+          <p class="form-cta-txt"><strong>Para incluir um título novo ou acrescentar edições</strong>, use o formulário. O que for enviado por ele entra no catálogo automaticamente e fica visível para os visitantes.</p>
+          <button class="btn-primary" onclick="abrirFormulario()">➕ Incluir título ou edição</button>
+        </div>
+        <p class="admin-aviso">⚠ <strong>As seções abaixo são apenas pré-visualização:</strong> o que for alterado aqui some ao recarregar a página e não chega aos visitantes. Servem para conferir como um registro ficaria. Cada seção tem o seu próprio botão — confira o número antes de salvar.</p>
         <div class="form-group">
           <label class="form-label">Título já cadastrado</label>
           <input type="text" class="form-input" id="edicao-titulo-busca" placeholder="Digite para buscar um título existente..." list="lista-titulos" oninput="selecionarTituloExistente()">
@@ -963,10 +969,22 @@ const PEND_KEY = 'bpsc_titulos_pendentes';
 //   A Título · B Subtítulo · C Município · D Periodicidade · E Idioma
 //   F Digitalizado · G Microfilme · H Disponibilidade · I Link · J Data de inclusão
 // ---------------------------------------------------------------------------
-// Endereço gerado por "Arquivo > Compartilhar > Publicar na web" (formato CSV).
-// Precisa ser o endereço PUBLICADO (com /d/e/2PACX-.../pub): o link comum de
-// compartilhamento não permite leitura a partir de outro site.
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQEVd92vSEz19y7M9ecENJwlTKARh4J_KDF7r_o9GPfOnHmDXzwXFYgxGh0ZnN2_GBYHEtR7VV-j1Nl/pub?output=csv';
+// Fontes de dados externas, lidas ao abrir o catálogo. São endereços gerados
+// por "Arquivo > Compartilhar > Publicar na web" (formato CSV) na planilha
+// "Jornais Inclusão". O link comum de compartilhamento NÃO funciona aqui.
+//
+// Cada fonte é lida de forma independente: se uma estiver fora do ar, vazia ou
+// mal preenchida, as outras continuam valendo e o catálogo nunca deixa de abrir.
+const FONTES_PLANILHA = [
+  {
+    nome: 'Respostas do formulário',
+    url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQI55L_cvtB5GcxIHs3m8QbUwFgoW8cvLgx6T-mgWFvaX0fS1c3MSX1wP4v9pY8HcY_oh3GfQHekMhJ/pub?gid=920507540&single=true&output=csv'
+  },
+  {
+    nome: 'Página1 (lançamento em lote)',
+    url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQEVd92vSEz19y7M9ecENJwlTKARh4J_KDF7r_o9GPfOnHmDXzwXFYgxGh0ZnN2_GBYHEtR7VV-j1Nl/pub?output=csv'
+  }
+];
 
 // Analisador de CSV que respeita aspas, vírgulas e quebras de linha dentro da
 // célula (a coluna Disponibilidade costuma ter várias linhas).
@@ -1007,10 +1025,46 @@ function ehSim(v) {
   return /^(sim|s|x|1|true|verdadeiro)$/i.test(String(v || '').trim());
 }
 
-function linhaParaRegistro(col) {
-  const t = (col[0] || '').trim();
-  const l = (col[2] || '').trim();
-  const disp = (col[7] || '').trim();
+// Localiza as colunas pelo NOME do cabeçalho, não pela posição. Isso permite
+// usar tanto a planilha preenchida à mão quanto a aba gerada por um Formulário
+// Google (que acrescenta "Carimbo de data/hora" na frente e pode reordenar).
+const COLUNAS = {
+  titulo:   ['titulo', 'nome do periodico', 'nome do jornal', 'jornal'],
+  subtitulo:['subtitulo', 'nota'],
+  local:    ['municipio', 'cidade', 'local'],
+  per:      ['periodicidade'],
+  idioma:   ['idioma'],
+  digital:  ['digitalizado', 'digital'],
+  micro:    ['microfilme', 'microfilmado'],
+  disp:     ['disponibilidade', 'disponibilidade do acervo', 'edicoes', 'edicoes disponiveis'],
+  url:      ['link', 'url', 'url hemeroteca digital', 'link hemeroteca'],
+  add:      ['data de inclusao', 'data'],
+  carimbo:  ['carimbo de data/hora', 'carimbo de datahora', 'timestamp']
+};
+
+function mapearColunas(cabecalho) {
+  const norm = cabecalho.map(c => normalizarTexto(String(c || '').replace(/\s+/g, ' ')));
+  const mapa = {};
+  for (const campo in COLUNAS) {
+    for (const nome of COLUNAS[campo]) {
+      const i = norm.findIndex(c => c === nome || c.startsWith(nome));
+      if (i !== -1) { mapa[campo] = i; break; }
+    }
+  }
+  return mapa;
+}
+
+// "22/07/2026 15:30:45" (formato do Formulário) -> "2026-07-22"
+function dataDoCarimbo(v) {
+  const m = String(v || '').match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : null;
+}
+
+function linhaParaRegistro(col, mapa) {
+  const pega = campo => (mapa[campo] === undefined ? '' : String(col[mapa[campo]] || '').trim());
+  const t = pega('titulo');
+  const l = pega('local');
+  const disp = pega('disp');
   if (!t || !l) return null;               // título e município são obrigatórios
   const anos = [];
   disp.split('\n').forEach(ln => {
@@ -1021,50 +1075,55 @@ function linhaParaRegistro(col) {
   const ye = anos.length ? Math.max(...anos) : null;
   return {
     t: t.toUpperCase(),
-    s: (col[1] || '').trim(),
+    s: pega('subtitulo'),
     l: l,
-    p: (col[3] || '').trim() || '-',
-    i: (col[4] || '').trim() || 'Português',
-    d: ehSim(col[5]),
-    m: ehSim(col[6]),
+    p: pega('per') || '-',
+    i: pega('idioma') || 'Português',
+    d: ehSim(pega('digital')),
+    m: ehSim(pega('micro')),
     y: y, ye: ye,
     disp: y ? (ye && ye !== y ? `${y}–${ye}` : String(y)) : '-',
     raw: disp,
-    url: (col[8] || '').trim(),
-    add: (col[9] || '').trim() || null,
+    url: pega('url'),
+    add: pega('add') || dataDoCarimbo(pega('carimbo')),
     _sheet: true
   };
 }
 
 async function carregarPlanilha() {
-  let texto;
-  try {
-    const resp = await fetch(SHEET_URL, { cache: 'no-store' });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    texto = await resp.text();
-  } catch (e) {
-    console.warn('Planilha de inclusões indisponível; usando apenas o acervo publicado.', e);
-    return;
+  const coletados = [];
+
+  for (const fonte of FONTES_PLANILHA) {
+    try {
+      const resp = await fetch(fonte.url, { cache: 'no-store' });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const linhas = parseCSV(await resp.text());
+      if (linhas.length < 2) continue;                 // só cabeçalho, ou vazia
+      const mapa = mapearColunas(linhas[0]);
+      if (mapa.titulo === undefined || mapa.local === undefined) {
+        console.warn(`Fonte "${fonte.nome}": não encontrei as colunas Título e Município no cabeçalho.`);
+        continue;
+      }
+      const regs = linhas.slice(1).map(l => linhaParaRegistro(l, mapa)).filter(Boolean);
+      coletados.push(...regs);
+      console.info(`Fonte "${fonte.nome}": ${regs.length} registro(s) lido(s).`);
+    } catch (e) {
+      console.warn(`Fonte "${fonte.nome}" indisponível; seguindo sem ela.`, e);
+    }
   }
-  let novos = [];
-  try {
-    const linhas = parseCSV(texto);
-    if (linhas.length < 2) return;         // só cabeçalho, ou vazia
-    novos = linhas.slice(1).map(linhaParaRegistro).filter(Boolean);
-  } catch (e) {
-    console.warn('Não foi possível interpretar a planilha de inclusões.', e);
-    return;
-  }
-  // Se o título já existe (mesmo nome e município), a planilha ACRESCENTA as
-  // edições ao registro existente em vez de criar um duplicado. É assim que se
-  // cadastra "chegaram novos exemplares de um jornal que já está no catálogo".
+
+  if (!coletados.length) return;
+
+  // Se o título já existe (mesmo nome e município), ACRESCENTA as edições ao
+  // registro existente em vez de criar um duplicado. É assim que se cadastra
+  // "chegaram novos exemplares de um jornal que já está no catálogo".
   const indice = new Map();
   DATA.forEach((j, i) => indice.set(normalizarTexto(j.t) + '|' + normalizarTexto(j.l), i));
 
   const aIncluir = [];
   let atualizados = 0;
 
-  novos.forEach(r => {
+  coletados.forEach(r => {
     const chave = normalizarTexto(r.t) + '|' + normalizarTexto(r.l);
     const pos = indice.get(chave);
 
@@ -1075,8 +1134,8 @@ async function carregarPlanilha() {
       return;
     }
 
-    // --- acréscimo de edições a um título já existente ---
-    const alvo = DATA[pos];
+    const alvo = pos < DATA.length ? DATA[pos] : aIncluir[pos - DATA.length];
+    if (!alvo) return;
     const existentes = new Set(String(alvo.raw || '').split('\n').map(s => s.trim()).filter(Boolean));
     const linhasNovas = String(r.raw || '').split('\n').map(s => s.trim())
                           .filter(ln => ln && !existentes.has(ln));
@@ -1098,7 +1157,7 @@ async function carregarPlanilha() {
   populateLocSelect();
   populateTituloDatalist();
   applyFilters();
-  console.info(`Planilha: ${aIncluir.length} título(s) novo(s), ${atualizados} título(s) atualizado(s).`);
+  console.info(`Planilha: ${aIncluir.length} título(s) novo(s), ${atualizados} atualizado(s).`);
 }
 
 function lerPendentes() {
@@ -1928,6 +1987,19 @@ function salvarTitulo() {
 // --------------------------------------------------------------------------
 // Painel de pendentes: revisar, exportar e remover.
 // --------------------------------------------------------------------------
+function abrirFormulario() {
+  if (!FORM_URL) return;
+  window.open(FORM_URL, '_blank', 'noopener');
+}
+
+// Mostra o botão do formulário apenas se o endereço estiver configurado.
+(function mostrarCtaFormulario() {
+  document.addEventListener('DOMContentLoaded', () => {
+    const cta = document.getElementById('form-cta');
+    if (cta && FORM_URL) cta.style.display = 'block';
+  });
+})();
+
 function renderPendentes() {
   const painel = document.getElementById('pend-painel');
   const lista  = document.getElementById('pend-lista');
