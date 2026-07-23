@@ -653,175 +653,20 @@
 
       <div class="admin-form" id="admin-form">
         <div class="admin-header">
-          <h3>1 · Adicionar nova edição a título existente</h3>
+          <h3>Inclusão de títulos e edições</h3>
           <button class="logout-btn" onclick="doLogout()">Sair</button>
         </div>
         <div id="form-cta" style="display:none">
-          <p class="form-cta-txt"><strong>Para incluir um título novo ou acrescentar edições</strong>, use o formulário. O que for enviado por ele entra no catálogo automaticamente e fica visível para os visitantes.</p>
+          <p class="form-cta-txt"><strong>Para incluir um título novo ou acrescentar edições a um título já existente</strong>, use o formulário. O que for enviado por ele entra no catálogo automaticamente e passa a aparecer para os visitantes em poucos minutos.</p>
+          <p class="form-cta-txt">Para acrescentar edições a um jornal que já está no catálogo, repita o <strong>título</strong> e o <strong>município</strong> exatamente como aparecem aqui e informe apenas os anos novos.</p>
           <button class="btn-primary" onclick="abrirFormulario()">➕ Incluir título ou edição</button>
         </div>
-        <p class="admin-aviso">⚠ <strong>As seções abaixo são apenas pré-visualização:</strong> o que for alterado aqui some ao recarregar a página e não chega aos visitantes. Servem para conferir como um registro ficaria. Cada seção tem o seu próprio botão — confira o número antes de salvar.</p>
-        <div class="form-group">
-          <label class="form-label">Título já cadastrado</label>
-          <input type="text" class="form-input" id="edicao-titulo-busca" placeholder="Digite para buscar um título existente..." list="lista-titulos" oninput="selecionarTituloExistente()">
-          <datalist id="lista-titulos"></datalist>
-          <div class="field-hint">Ao selecionar um título já existente, a nova edição é somada à disponibilidade dele automaticamente.</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Edições (uma linha por ano)</label>
-          <textarea class="form-input" id="edicao-linhas" rows="6" placeholder="Ex:&#10;2000: 01 a 18&#10;2001: 19 a 41&#10;2024 - janeiro · fevereiro&#10;2025" style="resize:vertical;font-family:inherit;line-height:1.5"></textarea>
-          <div class="field-hint">Cada linha deve começar pelo ano, seguido dos meses ou números de edição (aceita "2000: 01 a 18" ou "2024 - janeiro · fevereiro"). Uma linha só com o ano também vale. Cole quantas linhas quiser — todas são adicionadas de uma vez.</div>
-        </div>
-        <div class="form-actions" style="border-top:none;padding-top:0;">
-          <button class="btn-secondary" onclick="verificarHemeroteca()">↗ Verificar na Hemeroteca Digital</button>
-          <button class="btn-primary" onclick="adicionarEdicao()">Adicionar edição (seção 1)</button>
-        </div>
-        <div class="success-msg" id="edicao-ok">Edição adicionada ao título com sucesso.</div>
-
-        <h3 style="margin-top:28px">2 · Alterar título existente</h3>
-        <div class="form-group">
-          <label class="form-label">Buscar título para alterar</label>
-          <input type="text" class="form-input" id="edit-busca" placeholder="Digite para buscar um título existente..." list="lista-titulos">
-          <div class="field-hint">Selecione o título e clique em "Carregar dados" para editar as informações dele.</div>
-        </div>
-        <div class="form-actions" style="border-top:none;padding-top:0;">
-          <button class="btn-secondary" onclick="carregarTituloParaEdicao()">Carregar dados</button>
-        </div>
-        <div id="edit-campos" style="display:none">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Título *</label>
-              <input type="text" class="form-input" id="edit-titulo">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Subtítulo</label>
-              <input type="text" class="form-input" id="edit-subtitulo">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Município *</label>
-              <input type="text" class="form-input" id="edit-local">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Periodicidade</label>
-              <select class="form-select" id="edit-per">
-                <option value="-">Não informada</option>
-                <option>Diário</option><option>Semanal</option><option>Bissemanal</option>
-                <option>Trissemanal</option><option>Dominical</option><option>Quinzenal</option>
-                <option>Mensal</option><option>Bimensal</option><option>Bimestral</option>
-                <option>Trimestral</option>
-                <option>Semestral</option><option>Anual</option><option>Bianual</option>
-                <option>Irregular</option><option>Edição única</option>
-                <option>Edição Comemorativa</option><option>N. Especial</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Idioma</label>
-              <select class="form-select" id="edit-idioma">
-                <option>Português</option><option>Alemão</option><option>Italiano</option>
-                <option>Português/ Alemão</option><option>Português/ Italiano</option>
-                <option>Português/ Inglês</option><option value="-">-</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">URL Hemeroteca Digital</label>
-              <input type="url" class="form-input" id="edit-url" placeholder="https://...">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label"><input type="checkbox" id="edit-micro" style="margin-right:6px">Microfilmado</label>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Disponibilidade do acervo *</label>
-            <textarea class="form-textarea" id="edit-disp" rows="7"></textarea>
-            <div class="field-hint">Um ano por linha, no formato "ANO - mês · mês". Prefixe com 🔴 para notas de digitalização e ⚠ para interdições. Notas livres (sem ano) também são aceitas.</div>
-          </div>
-          <div class="form-actions">
-            <button class="btn-secondary" onclick="cancelarEdicaoTitulo()">Cancelar</button>
-            <button class="btn-primary" onclick="salvarAlteracaoTitulo()">Salvar alterações</button>
-          </div>
-          <div class="success-msg" id="edit-ok">Título alterado com sucesso.</div>
-        </div>
-
-        <h3 style="margin-top:28px">3 · Cadastrar título totalmente novo</h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Título *</label>
-            <input type="text" class="form-input" id="new-titulo" placeholder="Nome do periódico">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Subtítulo</label>
-            <input type="text" class="form-input" id="new-subtitulo" placeholder="Subtítulo ou nota">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Município *</label>
-            <input type="text" class="form-input" id="new-local" placeholder="Ex: Florianópolis">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Periodicidade</label>
-            <select class="form-select" id="new-per">
-              <option value="-">Não informada</option>
-              <option>Diário</option><option>Semanal</option><option>Bissemanal</option>
-                <option>Trissemanal</option><option>Dominical</option><option>Quinzenal</option>
-                <option>Mensal</option><option>Bimensal</option><option>Bimestral</option>
-                <option>Trimestral</option>
-                <option>Semestral</option><option>Anual</option><option>Bianual</option>
-                <option>Irregular</option><option>Edição única</option>
-                <option>Edição Comemorativa</option><option>N. Especial</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Idioma</label>
-            <select class="form-select" id="new-idioma">
-              <option>Português</option><option>Alemão</option><option>Italiano</option>
-              <option>Português/ Alemão</option><option>Português/ Italiano</option>
-              <option>Português/ Inglês</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Microfilme</label>
-            <input type="text" class="form-input" id="new-micro" placeholder="Ex: Rolo nº 15 ou deixe em branco">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Digital</label>
-            <select class="form-select" id="new-digital">
-              <option value="nao">Não</option>
-              <option value="sim">Sim</option>
-              <option value="parcial">Parcial</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">URL Hemeroteca Digital</label>
-            <input type="url" class="form-input" id="new-url" placeholder="https://...">
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Disponibilidade do acervo *</label>
-          <textarea class="form-textarea" id="new-disp" placeholder="Ex:&#10;1934 - agosto · setembro · outubro&#10;1935 - janeiro · fevereiro · março&#10;1940&#10;🔴 Digitalizado: 1940 a 1952"></textarea>
-          <div class="field-hint">Um ano por linha, no formato "ANO - mês · mês". Prefixe com 🔴 para notas de digitalização e ⚠ para interdições.</div>
-        </div>
-        <div class="form-actions">
-          <button class="btn-secondary" onclick="limparFormAdmin()">Limpar</button>
-          <button class="btn-primary" onclick="salvarTitulo()">Salvar título novo (seção 3)</button>
-        </div>
-        <div class="success-msg" id="admin-ok">Título gravado neste navegador como <strong>pendente</strong>. Ele ainda não está publicado: exporte-o abaixo para que seja embutido no catálogo.</div>
         <div id="pend-painel" style="display:none">
           <div class="pend-cabecalho">
             <span class="pend-titulo">⏳ <span id="pend-count"></span></span>
             <button class="report-btn" onclick="exportarPendentes()">⬇ Exportar pendentes (.json)</button>
           </div>
-          <p class="pend-aviso">Estes títulos estão gravados apenas neste navegador e <strong>não aparecem para os visitantes</strong>. Exporte o arquivo e encaminhe-o para que sejam incluídos no catálogo publicado. Limpar os dados de navegação apaga esta lista.</p>
+          <p class="pend-aviso">Títulos gravados neste navegador em versões anteriores do catálogo. Eles <strong>não aparecem para os visitantes</strong>. Exporte o arquivo para que sejam incluídos no catálogo publicado. Este bloco só aparece enquanto houver registros pendentes.</p>
           <div id="pend-lista"></div>
         </div>
       </div>
@@ -1160,7 +1005,6 @@ async function carregarPlanilha() {
   // todas as opções já existentes no filtro.
   refreshLocSelect();
   refreshPerSelect();
-  populateTituloDatalist();
   applyFilters();
   console.info(`Planilha: ${aIncluir.length} título(s) novo(s), ${atualizados} atualizado(s).`);
 }
@@ -1692,7 +1536,6 @@ function openAdmin() {
   document.getElementById('login-error').style.display = 'none';
   document.getElementById('admin-email').value = 'setorsantacatarina@fcc.sc.gov.br';
   document.getElementById('admin-pass').value = '';
-  populateTituloDatalist();
   openModal('modal-admin');
 }
 
@@ -1723,7 +1566,7 @@ function doLogin() {
     adminLogado = true;
     document.getElementById('login-panel').style.display = 'none';
     document.getElementById('admin-form').style.display = 'block';
-    document.getElementById('admin-ok').style.display = 'none';
+    renderPendentes();
   } else {
     document.getElementById('login-error').style.display = 'block';
   }
@@ -1737,106 +1580,6 @@ function doLogout() {
   document.getElementById('admin-pass').value = '';
 }
 
-function populateTituloDatalist() {
-  const dl = document.getElementById('lista-titulos');
-  dl.innerHTML = '';
-  DATA.forEach(j => {
-    const opt = document.createElement('option');
-    opt.value = j.t;
-    dl.appendChild(opt);
-  });
-}
-
-function selecionarTituloExistente() {
-  // placeholder para futura lógica de destaque visual ao selecionar
-}
-
-let tituloEmEdicao = null;
-
-function carregarTituloParaEdicao() {
-  const busca = document.getElementById('edit-busca').value.trim();
-  if (!busca) { alert('Digite ou selecione um título para alterar.'); return; }
-  const item = DATA.find(j => j.t === busca);
-  if (!item) { alert('Título não encontrado. Selecione um item da lista de sugestões.'); return; }
-  tituloEmEdicao = item;
-  document.getElementById('edit-titulo').value = item.t;
-  document.getElementById('edit-subtitulo').value = item.s || '';
-  document.getElementById('edit-local').value = item.l || '';
-  document.getElementById('edit-per').value = item.p || '-';
-  if (document.getElementById('edit-per').value !== (item.p || '-')) {
-    // periodicidade fora das opções padrão: adiciona-a para não perder o valor
-    const opt = document.createElement('option');
-    opt.textContent = item.p;
-    document.getElementById('edit-per').appendChild(opt);
-    document.getElementById('edit-per').value = item.p;
-  }
-  document.getElementById('edit-idioma').value = item.i || 'Português';
-  if (document.getElementById('edit-idioma').value !== (item.i || 'Português')) {
-    const opt = document.createElement('option');
-    opt.textContent = item.i;
-    document.getElementById('edit-idioma').appendChild(opt);
-    document.getElementById('edit-idioma').value = item.i;
-  }
-  document.getElementById('edit-url').value = item.url || '';
-  document.getElementById('edit-micro').checked = !!item.m;
-  document.getElementById('edit-disp').value = item.raw || '';
-  document.getElementById('edit-ok').style.display = 'none';
-  document.getElementById('edit-campos').style.display = 'block';
-}
-
-function cancelarEdicaoTitulo() {
-  tituloEmEdicao = null;
-  document.getElementById('edit-campos').style.display = 'none';
-  document.getElementById('edit-busca').value = '';
-}
-
-function salvarAlteracaoTitulo() {
-  if (!tituloEmEdicao) { alert('Nenhum título carregado para edição.'); return; }
-  const novoTitulo = document.getElementById('edit-titulo').value.trim();
-  const novoLocal = document.getElementById('edit-local').value.trim();
-  const novoRaw = document.getElementById('edit-disp').value.trim();
-  if (!novoTitulo || !novoLocal || !novoRaw) {
-    alert('Preencha os campos obrigatórios: Título, Município e Disponibilidade.');
-    return;
-  }
-  // Confere se o novo título não colide com outro registro já existente
-  const colisao = DATA.find(j => j !== tituloEmEdicao && j.t === novoTitulo && j.l === novoLocal);
-  if (colisao) {
-    alert('Já existe outro registro com esse mesmo título e município. Ajuste o título (ex.: acrescente o ano entre parênteses) para diferenciá-los.');
-    return;
-  }
-  const tituloAntigo = tituloEmEdicao.t;
-  tituloEmEdicao.t = novoTitulo;
-  tituloEmEdicao.s = document.getElementById('edit-subtitulo').value.trim();
-  tituloEmEdicao.l = novoLocal;
-  tituloEmEdicao.p = document.getElementById('edit-per').value;
-  tituloEmEdicao.i = document.getElementById('edit-idioma').value;
-  tituloEmEdicao.url = document.getElementById('edit-url').value.trim();
-  tituloEmEdicao.m = document.getElementById('edit-micro').checked;
-  tituloEmEdicao.raw = novoRaw;
-  // Recalcula flag digitalizado e intervalo de anos a partir da disponibilidade
-  tituloEmEdicao.d = /🔴/.test(novoRaw);
-  const anos = [];
-  novoRaw.split('\n').forEach(l => {
-    const mm = l.trim().match(/^(\d{4})/);
-    if (mm && !l.trim().startsWith('🔴') && !l.trim().startsWith('⚠')) anos.push(parseInt(mm[1]));
-  });
-  if (anos.length) {
-    tituloEmEdicao.y = Math.min(...anos);
-    tituloEmEdicao.ye = Math.max(...anos);
-    tituloEmEdicao.disp = (tituloEmEdicao.y === tituloEmEdicao.ye) ? String(tituloEmEdicao.y) : `${tituloEmEdicao.y}–${tituloEmEdicao.ye}`;
-  }
-  tituloEmEdicao._addedAt = Date.now();
-  populateTituloDatalist();
-  populateLocSelect ? refreshLocSelect() : null;
-  document.getElementById('edit-ok').style.display = 'block';
-  applyFilters();
-}
-
-// O filtro de periodicidade é montado a partir dos próprios registros, para
-// contemplar tanto os valores já existentes no acervo (Edição única,
-// Trissemanal, Dominical, Semestral, Bianual...) quanto qualquer periodicidade
-// nova que venha a ser cadastrada pela planilha, sem precisar alterar o código.
 function populatePerSelect() {
   const counts = {};
   DATA.forEach(j => { if (j.p && j.p !== '-') counts[j.p] = (counts[j.p] || 0) + 1; });
@@ -1868,160 +1611,6 @@ function refreshLocSelect() {
   if (sel.selectedIndex === -1) sel.selectedIndex = 0;
 }
 
-function verificarHemeroteca() {
-  window.open('http://hemeroteca.ciasc.sc.gov.br/', '_blank');
-}
-
-function adicionarEdicao() {
-  const tituloBusca = document.getElementById('edicao-titulo-busca').value.trim();
-  const texto = document.getElementById('edicao-linhas').value;
-
-  if (!tituloBusca || !texto.trim()) {
-    alert('Selecione o título e informe pelo menos uma linha de edição.');
-    return;
-  }
-
-  const item = DATA.find(j => j.t === tituloBusca);
-  if (!item) {
-    alert('Título não encontrado no catálogo. Verifique se selecionou um item da lista.');
-    return;
-  }
-
-  // Interpreta cada linha: deve começar pelo ano; aceita "2000: 01 a 18", "2024 - jan · fev" ou só "2025"
-  const linhas = texto.split('\n').map(l => l.trim()).filter(Boolean);
-  const novas = [];
-  const invalidas = [];
-  for (const l of linhas) {
-    const m = l.match(/^(\d{4})\s*[-:–]?\s*(.*)$/);
-    if (!m) { invalidas.push(l); continue; }
-    const ano = parseInt(m[1]);
-    if (ano < 1800 || ano > 2100) { invalidas.push(l); continue; }
-    const resto = m[2].trim();
-    novas.push({ ano, linha: resto ? `${ano} - ${resto}` : `${ano}` });
-  }
-  if (invalidas.length) {
-    alert('Estas linhas não começam com um ano válido e não foram adicionadas:\n\n' + invalidas.join('\n') + '\n\nCorrija-as e adicione novamente (as demais linhas também NÃO foram salvas).');
-    return;
-  }
-  if (!novas.length) {
-    alert('Nenhuma linha válida encontrada.');
-    return;
-  }
-
-  // Insere as linhas novas ANTES das notas 🔴/⚠, preservando o padrão de ordenação
-  const atuais = item.raw ? item.raw.split('\n') : [];
-  const idxNota = atuais.findIndex(l => l.trim().startsWith('🔴') || l.trim().startsWith('⚠'));
-  const inserir = novas.map(n => n.linha);
-  if (idxNota === -1) {
-    item.raw = atuais.concat(inserir).join('\n');
-  } else {
-    item.raw = atuais.slice(0, idxNota).concat(inserir, atuais.slice(idxNota)).join('\n');
-  }
-
-  for (const n of novas) {
-    if (!item.y || n.ano < item.y) item.y = n.ano;
-    if (!item.ye || n.ano > item.ye) item.ye = n.ano;
-  }
-  item.disp = (item.y === item.ye) ? String(item.y) : `${item.y}–${item.ye}`;
-  item._addedAt = Date.now();
-
-  const ok = document.getElementById('edicao-ok');
-  ok.textContent = `${novas.length} edição(ões) adicionada(s) a ${item.t}.`;
-  ok.style.display = 'block';
-  // Mantém o título selecionado para continuar incluindo; limpa apenas as linhas
-  document.getElementById('edicao-linhas').value = '';
-  applyFilters();
-}
-
-function limparFormAdmin() {
-  ['new-titulo','new-subtitulo','new-local','new-micro','new-url','new-disp'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('new-per').value = '-';
-  document.getElementById('new-digital').value = 'nao';
-  document.getElementById('admin-ok').style.display = 'none';
-}
-
-function salvarTitulo() {
-  const titulo = document.getElementById('new-titulo').value.trim();
-  const local  = document.getElementById('new-local').value.trim();
-  const disp   = document.getElementById('new-disp').value.trim();
-  if (!titulo || !local || !disp) {
-    alert('Preencha os campos obrigatórios: Título, Município e Disponibilidade.');
-    return;
-  }
-  const per   = document.getElementById('new-per').value;
-  const idi   = document.getElementById('new-idioma').value;
-  const micro = document.getElementById('new-micro').value.trim();
-  const dig   = document.getElementById('new-digital').value;
-  const url   = document.getElementById('new-url').value.trim();
-  const sub   = document.getElementById('new-subtitulo').value.trim();
-
-  // Padronização automática: título sempre em maiúsculas; subtítulo com
-  // a primeira letra maiúscula, preservando nomes próprios já digitados.
-  const tituloPad = titulo.toUpperCase();
-  let subPad = sub;
-  if (sub) {
-    for (let i = 0; i < sub.length; i++) {
-      if (/[a-zà-öø-ÿ]/i.test(sub[i])) {
-        subPad = sub.slice(0, i) + sub[i].toUpperCase() + sub.slice(i + 1);
-        break;
-      }
-    }
-  }
-
-  function parseAnos(raw) {
-    const anos = [];
-    raw.split('\n').forEach(line => {
-      if (line.startsWith('🔴') || line.startsWith('⚠')) return;
-      const found = line.match(/\b(1[789]\d\d|20[012]\d)\b/g);
-      if (found) found.forEach(a => anos.push(parseInt(a)));
-    });
-    return anos;
-  }
-
-  const anos = parseAnos(disp);
-  const yStart = anos.length ? Math.min(...anos) : null;
-  const yEnd   = anos.length ? Math.max(...anos) : null;
-  const resumo = yStart ? (yEnd && yEnd !== yStart ? `${yStart}–${yEnd}` : String(yStart)) : '-';
-
-  // Evita cadastrar duas vezes o mesmo título no mesmo município.
-  const dup = DATA.find(j => normalizarTexto(j.t) === normalizarTexto(tituloPad)
-                          && normalizarTexto(j.l) === normalizarTexto(local));
-  if (dup) {
-    const ondeEsta = dup._pend ? 'já está na sua lista de pendentes' : 'já consta no catálogo publicado';
-    if (!confirm(`"${dup.t}" (${dup.l}) ${ondeEsta}.\n\nDeseja cadastrar assim mesmo, criando um registro duplicado?`)) return;
-  }
-
-  const novo = {
-    t: tituloPad, s: subPad, l: local.trim(),
-    p: per === '-' ? '-' : per,
-    i: idi,
-    d: dig === 'sim',
-    m: micro !== '',
-    y: yStart, ye: yEnd,
-    disp: resumo,
-    raw: disp,
-    url: url,
-    add: new Date().toISOString().slice(0, 10)
-  };
-
-  // Grava primeiro: se o navegador recusar, não finge que salvou.
-  const pend = lerPendentes();
-  pend.push(novo);
-  if (!gravarPendentes(pend)) return;
-
-  DATA.unshift(Object.assign({}, novo, { _pend: true, _addedAt: Date.now(), _uid: nextUid++ }));
-  document.getElementById('admin-ok').style.display = 'block';
-  limparFormAdmin();
-  populateTituloDatalist();
-  refreshLocSelect();
-  refreshPerSelect();
-  renderPendentes();
-  applyFilters();
-}
-
-// --------------------------------------------------------------------------
-// Painel de pendentes: revisar, exportar e remover.
-// --------------------------------------------------------------------------
 function abrirFormulario() {
   if (!FORM_URL) return;
   window.open(FORM_URL, '_blank', 'noopener');
@@ -2061,7 +1650,6 @@ function removerPendente(i) {
   const idx = DATA.findIndex(j => j._pend && j.t === alvo.t && j.l === alvo.l);
   if (idx !== -1) DATA.splice(idx, 1);
   renderPendentes();
-  populateTituloDatalist();
   applyFilters();
 }
 
