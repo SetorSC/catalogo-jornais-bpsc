@@ -301,16 +301,16 @@
     #print-report .report-header h1 { font-size: 18px; margin: 0 0 4px; color: #0F5038; }
     #print-report .report-header p { font-size: 11px; color: #555; margin: 2px 0; }
     #print-report table { width: 100%; border-collapse: collapse; font-size: 8px; table-layout: fixed; }
-    #print-report td, #print-report th { word-wrap: break-word; overflow-wrap: break-word; }
-    #print-report th:nth-child(1), #print-report td:nth-child(1) { width: 13%; }
-    #print-report th:nth-child(2), #print-report td:nth-child(2) { width: 11%; }
-    #print-report th:nth-child(3), #print-report td:nth-child(3) { width: 8%; }
+    #print-report td, #print-report th { word-wrap: break-word; overflow-wrap: break-word; box-sizing: border-box; }
+    #print-report th:nth-child(1), #print-report td:nth-child(1) { width: 15%; }
+    #print-report th:nth-child(2), #print-report td:nth-child(2) { width: 9%; }
+    #print-report th:nth-child(3), #print-report td:nth-child(3) { width: 7%; }
     #print-report th:nth-child(4), #print-report td:nth-child(4) { width: 7%; }
     #print-report th:nth-child(5), #print-report td:nth-child(5) { width: 6%; }
     #print-report th:nth-child(6), #print-report td:nth-child(6) { width: 42%; }
-    #print-report th:nth-child(7), #print-report td:nth-child(7) { width: 5%; }
-    #print-report th:nth-child(8), #print-report td:nth-child(8) { width: 6%; }
-    #print-report th, #print-report td { border: 1px solid #ccc; padding: 3px 5px; text-align: left; vertical-align: top; }
+    #print-report th:nth-child(7), #print-report td:nth-child(7) { width: 7%; }
+    #print-report th:nth-child(8), #print-report td:nth-child(8) { width: 7%; }
+    #print-report th, #print-report td { border: 1px solid #ccc; padding: 3px 5px; text-align: left; vertical-align: top; box-sizing: border-box; }
     #print-report thead { display: table-header-group; }
     #print-report th { background: #eef4f1; font-weight: 600; }
     #print-report tr { page-break-inside: avoid; }
@@ -369,7 +369,7 @@
       <div class="info-section">
         <h3>Especificidades do acervo</h3>
         <div class="info-grid">
-          <div class="info-card"><div class="info-card-label">Período coberto</div><div class="info-card-val">1832 – 2026</div></div>
+          <div class="info-card"><div class="info-card-label">Período coberto</div><div class="info-card-val">1831 – 2026</div></div>
           <div class="info-card"><div class="info-card-label">Municípios representados</div><div class="info-card-val">223 municípios</div></div>
           <div class="info-card"><div class="info-card-label">Digitalizados</div><div class="info-card-val">560 títulos</div></div>
           <div class="info-card"><div class="info-card-label">Em microfilme</div><div class="info-card-val">589 títulos</div></div>
@@ -723,7 +723,7 @@
 
     <div class="filter-section">
       <div class="filter-label">Ano de Publicação</div>
-      <input type="number" class="year-input-single" id="year-from" placeholder="Ex: 1950" min="1832" max="2026">
+      <input type="number" class="year-input-single" id="year-from" placeholder="Ex: 1950" min="1831" max="2026">
     </div>
 
     <div class="filter-section">
