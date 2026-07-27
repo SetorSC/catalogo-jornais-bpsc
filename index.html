@@ -340,9 +340,9 @@
   <button class="nav-btn" onclick="showSection('regras')">Regras de uso</button>
   <button class="nav-btn" onclick="showSection('contato')">Contato</button>
   <button class="nav-btn" onclick="showSection('sugestoes')">Sugestões</button>
-  <button class="nav-btn" onclick="showSection('relatorios')">Relatórios</button>
 <button class="nav-btn" onclick="showSection('atualizacoes')">Atualizações</button>
 <button class="nav-btn" onclick="abrirTutorial()">Como usar</button>
+  <button class="nav-btn" onclick="showSection('relatorios')">Imprimir Catálogo</button>
   <div class="nav-spacer"></div>
   <button class="nav-lista-btn" onclick="abrirListaConsulta()">📋 Minha lista <span class="lista-badge" id="lista-badge" style="display:none">0</span></button>
   <button class="nav-admin-btn" onclick="openAdmin()">+ Inserir novo título</button>
@@ -512,7 +512,7 @@
 <div class="overlay" id="modal-relatorios">
   <div class="modal">
     <div class="modal-header">
-      <h2>Relatórios</h2>
+      <h2>Imprimir Catálogo</h2>
       <button class="modal-close" onclick="closeModal('modal-relatorios')">✕</button>
     </div>
     <div class="modal-body">
@@ -520,12 +520,6 @@
         <h3>Catálogo completo</h3>
         <p>Gera um relatório com todos os títulos do acervo e suas informações (município, periodicidade, idioma, período de disponibilidade, digitalização e microfilme), já diagramado para impressão. Ao clicar, a janela de impressão do navegador será aberta — escolha "Salvar como PDF" no destino da impressão.</p>
         <button class="report-btn" onclick="gerarRelatorioCompleto()">📄 Gerar relatório completo (PDF)</button>
-      </div>
-      <div class="info-section">
-        <h3>Novas inserções</h3>
-        <p>Gera um relatório apenas com os títulos inseridos ou editados pela equipe durante esta sessão de navegação. Útil para conferir rapidamente o que foi cadastrado em um período de trabalho.</p>
-        <button class="report-btn" onclick="gerarRelatorioInsercoes()">🆕 Gerar relatório de novas inserções (PDF)</button>
-        <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">Atenção: como o catálogo é um arquivo estático, esse controle vale apenas para a sessão atual do navegador — ele é perdido ao atualizar ou fechar a página.</p>
       </div>
     </div>
   </div>
@@ -541,6 +535,7 @@
     <div class="modal-body">
       <div class="info-section">
         <p>Títulos incluídos no catálogo, agrupados pela data de inclusão — os mais recentes primeiro. A lista é montada automaticamente a partir do acervo; toque em um título para localizá-lo na busca.</p>
+        <button class="report-btn" onclick="gerarRelatorioInsercoes()" style="margin-top:4px;">🆕 Gerar relatório em PDF</button>
       </div>
       <div id="historico-lista"></div>
     </div>
@@ -1718,13 +1713,18 @@ function gerarRelatorioCompleto() {
 }
 
 function gerarRelatorioInsercoes() {
-  const novos = DATA.filter(j => j._addedAt);
+  // Títulos com data de inclusão registrada (campo "add"), que inclui tanto os
+  // já embutidos no arquivo quanto os que chegam pela planilha. Também considera
+  // os inseridos pelo painel local nesta sessão (campo "_addedAt").
+  const novos = DATA.filter(j => j.add || j._addedAt);
   if (novos.length === 0) {
-    alert('Nenhum título foi inserido ou editado nesta sessão de navegação ainda.');
+    alert('Ainda não há títulos com data de inclusão registrada.');
     return;
   }
-  novos.sort((a, b) => (b._addedAt || 0) - (a._addedAt || 0));
-  gerarRelatorioPDF(novos, 'Relatório de Novas Inserções', true);
+  // ordena do mais recente para o mais antigo
+  const chave = j => j.add ? j.add : (j._addedAt ? new Date(j._addedAt).toISOString().slice(0, 10) : '');
+  novos.sort((a, b) => chave(b).localeCompare(chave(a)));
+  gerarRelatorioPDF(novos, 'Relatório de Títulos Incluídos', true);
 }
 
 function gerarRelatorioPDF(lista, tituloRelatorio, mostrarDataInsercao) {
@@ -1741,7 +1741,7 @@ function gerarRelatorioPDF(lista, tituloRelatorio, mostrarDataInsercao) {
       <td>${renderDisponibilidade(j.raw)}</td>
       <td>${j.d ? 'Sim' : 'Não'}</td>
       <td>${j.m ? 'Sim' : 'Não'}</td>
-      ${mostrarDataInsercao ? `<td>${j._addedAt ? new Date(j._addedAt).toLocaleString('pt-BR') : '-'}</td>` : ''}
+      ${mostrarDataInsercao ? `<td>${j.add ? j.add.split('-').reverse().join('/') : (j._addedAt ? new Date(j._addedAt).toLocaleDateString('pt-BR') : '-')}</td>` : ''}
     </tr>`).join('');
 
   document.getElementById('print-report').innerHTML = `
@@ -1755,7 +1755,7 @@ function gerarRelatorioPDF(lista, tituloRelatorio, mostrarDataInsercao) {
         <tr>
           <th>Título</th><th>Subtítulo</th><th>Município</th><th>Periodicidade</th>
           <th>Idioma</th><th>Disponibilidade do acervo (anos, digitalização, interdições)</th><th>Digital</th><th>Microfilme</th>
-          ${mostrarDataInsercao ? '<th>Inserido/editado em</th>' : ''}
+          ${mostrarDataInsercao ? '<th>Incluído em</th>' : ''}
         </tr>
       </thead>
       <tbody>${linhas}</tbody>
