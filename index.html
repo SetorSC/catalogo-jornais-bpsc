@@ -117,6 +117,8 @@
   .disp-ano-row { display: flex; align-items: baseline; gap: 8px; padding: 3px 0; border-bottom: 0.5px solid var(--border); break-inside: avoid; -webkit-column-break-inside: avoid; }
   .disp-ano-row:last-of-type { border-bottom: none; }
   .disp-ano { font-size: 13px; font-weight: 500; color: var(--esm-dark); min-width: 38px; flex-shrink: 0; }
+  .disp-ano-digital { color: var(--carmim-dark); font-weight: 700; }
+  .disp-ano-dot { font-size: 8px; margin-right: 4px; vertical-align: middle; }
   .disp-meses { display: flex; flex-wrap: wrap; gap: 3px; }
   .disp-mes { font-size: 11px; background: var(--esm-xlight); color: var(--esm-dark); border-radius: 4px; padding: 1px 6px; border: 0.5px solid rgba(26,122,82,0.18); }
   .disp-papel { font-size: 10.5px; background: #F2ECE3; color: #6B5B45; border-radius: 4px; padding: 1px 7px; border: 0.5px solid rgba(107,91,69,0.25); margin-left: auto; }
@@ -1241,11 +1243,13 @@ function renderDisponibilidade(raw) {
         const meses = m[2] ? m[2].trim() : null;
         const foraPapel = !anosDigit || !anosDigit.has(parseInt(ano));
         const tagPapel = foraPapel ? '<span class="disp-papel">📄 Edição em papel</span>' : '';
+        const classeAno = foraPapel ? 'disp-ano' : 'disp-ano disp-ano-digital';
+        const marcaDig = foraPapel ? '' : '<span class="disp-ano-dot">🔴</span>';
         if (meses) {
           const mesList = meses.split('·').map(s => `<span class="disp-mes">${escHtml(s.trim())}</span>`).join('');
-          anos += `<div class="disp-ano-row"><span class="disp-ano">${ano}</span><span class="disp-meses">${mesList}</span>${tagPapel}</div>`;
+          anos += `<div class="disp-ano-row"><span class="${classeAno}">${marcaDig}${ano}</span><span class="disp-meses">${mesList}</span>${tagPapel}</div>`;
         } else {
-          anos += `<div class="disp-ano-row"><span class="disp-ano">${ano}</span>${tagPapel}</div>`;
+          anos += `<div class="disp-ano-row"><span class="${classeAno}">${marcaDig}${ano}</span>${tagPapel}</div>`;
         }
       } else {
         // Texto livre (notas editoriais, continuações etc.)
