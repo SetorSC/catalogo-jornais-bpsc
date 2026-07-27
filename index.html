@@ -94,9 +94,9 @@
   .card-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
   .card-meta { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
   .tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; border: 0.5px solid var(--border); background: var(--surface2); color: var(--text-secondary); }
-  .tag.digital { background: var(--esm-light); color: var(--esm-dark); border-color: transparent; }
+  .tag.digital { background: #E3F1FC; color: #1D5A8C; border-color: transparent; }
   .tag.microfilme { background: #faeeda; color: #5a3508; border-color: transparent; }
-  .tag.lugar { background: #E3F1FC; color: #1D5A8C; border-color: rgba(29,90,140,0.20); }
+  .tag.lugar { background: var(--esm-light); color: var(--esm-dark); border-color: rgba(15,80,56,0.15); }
   .tag.data { background: #F1E9FB; color: #6B3FA0; border-color: rgba(107,63,160,0.20); }
   .tag.periodicidade { background: #EAECEF; color: #495057; border-color: rgba(73,80,87,0.20); }
   .card-expand { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 2px; flex-shrink: 0; font-size: 18px; line-height: 1; }
@@ -117,14 +117,16 @@
   .disp-ano-row { display: flex; align-items: baseline; gap: 8px; padding: 3px 0; border-bottom: 0.5px solid var(--border); break-inside: avoid; -webkit-column-break-inside: avoid; }
   .disp-ano-row:last-of-type { border-bottom: none; }
   .disp-ano { font-size: 13px; font-weight: 500; color: var(--esm-dark); min-width: 38px; flex-shrink: 0; }
-  .disp-ano-digital { color: var(--carmim-dark); font-weight: 700; }
+  .disp-preservacao { margin-top: 12px; padding: 8px 10px; font-size: 9px; line-height: 1.45; color: var(--text-secondary); background: var(--surface2); border-top: 1px solid var(--border); border-radius: 0 0 4px 4px; }
+  .disp-preservacao strong { color: var(--carmim-dark); }
+  .disp-ano-digital { color: #1D5A8C; font-weight: 700; }
   .disp-ano-dot { font-size: 8px; margin-right: 4px; vertical-align: middle; }
   .disp-meses { display: flex; flex-wrap: wrap; gap: 3px; }
   .disp-mes { font-size: 11px; background: var(--esm-xlight); color: var(--esm-dark); border-radius: 4px; padding: 1px 6px; border: 0.5px solid rgba(26,122,82,0.18); }
   .disp-papel { font-size: 10.5px; background: #F2ECE3; color: #6B5B45; border-radius: 4px; padding: 1px 7px; border: 0.5px solid rgba(107,91,69,0.25); margin-left: auto; }
   .disp-ano-comp { font-size: 11px; color: var(--text-muted); font-style: italic; }
   .disp-nota { font-size: 11px; padding: 4px 8px; border-radius: 4px; margin-top: 4px; }
-  .disp-digital { background: var(--esm-light); color: var(--esm-dark); }
+  .disp-digital { background: #E3F1FC; color: #1D5A8C; }
   .disp-interdicao { background: var(--carmim-light); color: var(--carmim-dark); }
   .disp-livre { font-size: 12.5px; font-weight: 500; color: #9A5B0C; font-style: normal; background: #FDF0E1; border-left: 3px solid #E08A2E; border-radius: 4px; padding: 4px 10px; margin: 3px 0; line-height: 1.4; }
   .hemeroteca-link { display: inline-flex; align-items: center; gap: 4px; color: var(--esm); font-size: 12px; text-decoration: none; margin-top: 8px; grid-column: 1 / -1; font-weight: 500; }
@@ -324,8 +326,9 @@
     #print-report .disp-mes { font-size: 7px; background: #eef4f1; padding: 0 3px; border-radius: 2px; border: none; }
     #print-report .disp-papel { font-size: 7px; background: #F2ECE3; color: #6B5B45; padding: 0 3px; border-radius: 2px; border: none; margin-left: 4px; }
     #print-report .disp-nota { font-size: 7.5px; padding: 1px 4px; margin-bottom: 2px; border-radius: 3px; }
-    #print-report .disp-digital { background: #eef4f1; color: #0F5038; }
+    #print-report .disp-digital { background: #E3F1FC; color: #1D5A8C; }
     #print-report .disp-interdicao { background: #fbe4ea; color: #8E0F34; }
+    #print-report .disp-preservacao { margin-top: 4px; font-size: 6.5px; line-height: 1.4; color: #555; border-top: 0.5px solid #ccc; padding-top: 2px; }
     #print-report .disp-livre { font-size: 7.5px; font-style: normal; font-weight: 600; color: #9A5B0C; background: #FDF0E1; border-left: 2px solid #E08A2E; padding: 1px 4px; margin: 1px 0; }
   }
 </style>
@@ -1221,7 +1224,7 @@ function updateStats() {
   document.getElementById('results-count').textContent = `${filtered.length.toLocaleString('pt-BR')} resultado${filtered.length !== 1 ? 's' : ''}`;
 }
 
-function renderDisponibilidade(raw) {
+function renderDisponibilidade(raw, semPreservacao) {
   if (!raw) return '<span style="color:var(--text-muted)">—</span>';
   const anosDigit = extrairAnosDigitalizados(raw);
   const lines = raw.split('\n');
@@ -1232,7 +1235,8 @@ function renderDisponibilidade(raw) {
     if (!l) continue;
     if (l.startsWith('🔴')) {
       const aviso = !anosDigit ? ' <em>(digitalização pode ser parcial — confirme o ano exato na Hemeroteca Digital)</em>' : '';
-      notas += `<div class="disp-nota disp-digital">${escHtml(l)}${aviso}</div>`;
+      const texto = escHtml(l).replace('🔴', '🔵');
+      notas += `<div class="disp-nota disp-digital">${texto}${aviso}</div>`;
     } else if (l.startsWith('⚠')) {
       notas += `<div class="disp-nota disp-interdicao">${escHtml(l)}</div>`;
     } else {
@@ -1244,7 +1248,7 @@ function renderDisponibilidade(raw) {
         const foraPapel = !anosDigit || !anosDigit.has(parseInt(ano));
         const tagPapel = foraPapel ? '<span class="disp-papel">📄 Edição em papel</span>' : '';
         const classeAno = foraPapel ? 'disp-ano' : 'disp-ano disp-ano-digital';
-        const marcaDig = foraPapel ? '' : '<span class="disp-ano-dot">🔴</span>';
+        const marcaDig = foraPapel ? '' : '<span class="disp-ano-dot">🔵</span>';
         if (meses) {
           const mesList = meses.split('·').map(s => `<span class="disp-mes">${escHtml(s.trim())}</span>`).join('');
           anos += `<div class="disp-ano-row"><span class="${classeAno}">${marcaDig}${ano}</span><span class="disp-meses">${mesList}</span>${tagPapel}</div>`;
@@ -1258,7 +1262,14 @@ function renderDisponibilidade(raw) {
     }
   }
   const anosHtml = anos ? `<div class="disp-anos-grid">${anos}</div>` : '';
-  return (notas + anosHtml) || '<span style="color:var(--text-muted)">—</span>';
+  // Rodapé de preservação: aparece sempre que o registro tiver material digitalizado
+  // (seja pela linha "🔴 Digitalizado", seja por anos digitalizados detectados).
+  // No relatório impresso é omitido por linha e mostrado uma única vez no rodapé geral.
+  const temDigital = anosDigit || lines.some(l => l.trim().startsWith('🔴') && /digitalizad/i.test(l));
+  const rodape = (temDigital && !semPreservacao)
+    ? `<div class="disp-preservacao">⚠ <strong>Atenção:</strong> as edições já digitalizadas e disponíveis na Hemeroteca Digital Catarinense não estão mais disponíveis para consulta no suporte físico (papel ou microfilme), como medida de preservação dos originais. Exceções serão analisadas pela equipe do Setor Santa Catarina.</div>`
+    : '';
+  return (notas + anosHtml + rodape) || '<span style="color:var(--text-muted)">—</span>';
 }
 
 function renderCards() {
@@ -1742,7 +1753,7 @@ function gerarRelatorioPDF(lista, tituloRelatorio, mostrarDataInsercao) {
       <td>${escHtml(j.l)}</td>
       <td>${escHtml(j.p || '-')}</td>
       <td>${escHtml(j.i || '-')}</td>
-      <td>${renderDisponibilidade(j.raw)}</td>
+      <td>${renderDisponibilidade(j.raw, true)}</td>
       <td>${j.d ? 'Sim' : 'Não'}</td>
       <td>${j.m ? 'Sim' : 'Não'}</td>
       ${mostrarDataInsercao ? `<td>${j.add ? j.add.split('-').reverse().join('/') : (j._addedAt ? new Date(j._addedAt).toLocaleDateString('pt-BR') : '-')}</td>` : ''}
@@ -1764,7 +1775,7 @@ function gerarRelatorioPDF(lista, tituloRelatorio, mostrarDataInsercao) {
       </thead>
       <tbody>${linhas}</tbody>
     </table>
-    <div class="report-footer">Catálogo de Jornais Catarinenses — 6ª edição, 2026 — Documento gerado automaticamente para fins de consulta e impressão.</div>
+    <div class="report-footer"><p style="margin:0 0 4px;"><strong>Atenção:</strong> as edições já digitalizadas e disponíveis na Hemeroteca Digital Catarinense não estão mais disponíveis para consulta no suporte físico (papel ou microfilme), como medida de preservação dos originais. Exceções serão analisadas pela equipe do Setor Santa Catarina.</p>Catálogo de Jornais Catarinenses — 6ª edição, 2026 — Documento gerado automaticamente para fins de consulta e impressão.</div>
   `;
 
   document.body.classList.add('print-mode');
@@ -1847,10 +1858,10 @@ window.addEventListener('afterprint', () => {
   .m-card-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
   .m-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
   .m-tag { font-size: 10.5px; font-weight: 500; border-radius: 20px; padding: 2px 9px; }
-  .t-lugar { background: var(--azul-bg); color: var(--azul); }
+  .t-lugar { background: var(--esm-light); color: var(--esm-dark); }
   .t-data { background: var(--roxo-bg); color: var(--roxo); }
   .t-per { background: var(--cinza-bg); color: var(--cinza); }
-  .t-dig { background: var(--esm-light); color: var(--esm-dark); }
+  .t-dig { background: #E3F1FC; color: #1D5A8C; }
   .t-mic { background: var(--ambar-bg); color: var(--ambar); }
 
   /* cursor fantasma */
@@ -1888,7 +1899,7 @@ window.addEventListener('afterprint', () => {
   .m-detail { border-top: 1px dashed var(--border); margin-top: 10px; padding-top: 10px; }
   .s3.active .m-detail { opacity: 0; animation: rise .55s ease 3s forwards; }
   .m-note { font-size: 10.5px; border-radius: 5px; padding: 3px 8px; margin-bottom: 5px; display: inline-block; }
-  .n-dig { background: var(--esm-xlight); color: var(--esm-dark); }
+  .n-dig { background: #E3F1FC; color: #1D5A8C; }
   .n-int { background: var(--carmim-light); color: var(--carmim-dark); }
   .m-anos { columns: 2; column-gap: 14px; margin-top: 6px; font-size: 11px; color: var(--text-2); }
   .m-ano-row { border-bottom: 0.5px solid var(--border); padding: 2px 0; break-inside: avoid; }
@@ -2051,7 +2062,7 @@ window.addEventListener('afterprint', () => {
               <span class=&quot;m-tag t-mic&quot;>🎞 Microfilme</span>
             </div>
             <div class=&quot;m-detail&quot;>
-              <span class=&quot;m-note n-dig&quot;>🔴 Digitalizado: consulte a Hemeroteca Digital <em>(pode ser parcial)</em></span><br>
+              <span class=&quot;m-note n-dig&quot;>🔵 Digitalizado: consulte a Hemeroteca Digital <em>(pode ser parcial)</em></span><br>
               <span class=&quot;m-note n-int&quot;>⚠ Interditado para restauração: diversos nº 06</span>
               <div class=&quot;m-anos&quot;>
                 <div class=&quot;m-ano-row&quot;><b>1872</b> ago · set · out</div>
