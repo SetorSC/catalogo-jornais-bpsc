@@ -374,7 +374,7 @@
     <div class="modal-body">
       <div class="info-section">
         <h3>O que é este catálogo</h3>
-        <p>O Catálogo de Jornais da Biblioteca Pública de Santa Catarina (BPSC) reúne o inventário completo do acervo de periódicos custodiados pela instituição. São 1.837 títulos que documentam a história da imprensa catarinense desde o século XIX até os dias atuais.</p>
+        <p>O Catálogo de Jornais da Biblioteca Pública de Santa Catarina (BPSC) reúne o inventário completo do acervo de periódicos custodiados pela instituição. São <span id="sobre-total">—</span> títulos que documentam a história da imprensa catarinense desde o século XIX até os dias atuais.</p>
         <p>Cada registro informa o título, subtítulo, município de origem, periodicidade, idioma, disponibilidade em microfilme ou formato digital, e a relação detalhada de anos e meses disponíveis para consulta.</p>
       </div>
       <div class="info-section">
@@ -385,10 +385,10 @@
       <div class="info-section">
         <h3>Especificidades do acervo</h3>
         <div class="info-grid">
-          <div class="info-card"><div class="info-card-label">Período coberto</div><div class="info-card-val">1831 – 2026</div></div>
-          <div class="info-card"><div class="info-card-label">Municípios representados</div><div class="info-card-val">223 municípios</div></div>
-          <div class="info-card"><div class="info-card-label">Digitalizados</div><div class="info-card-val">560 títulos</div></div>
-          <div class="info-card"><div class="info-card-label">Em microfilme</div><div class="info-card-val">589 títulos</div></div>
+          <div class="info-card"><div class="info-card-label">Período coberto</div><div class="info-card-val" id="sobre-periodo">—</div></div>
+          <div class="info-card"><div class="info-card-label">Municípios representados</div><div class="info-card-val" id="sobre-municipios">—</div></div>
+          <div class="info-card"><div class="info-card-label">Digitalizados</div><div class="info-card-val" id="sobre-digitalizados">—</div></div>
+          <div class="info-card"><div class="info-card-label">Em microfilme</div><div class="info-card-val" id="sobre-microfilme">—</div></div>
         </div>
       </div>
       <div class="info-section">
@@ -1016,6 +1016,7 @@ async function carregarPlanilha() {
   // todas as opções já existentes no filtro.
   refreshLocSelect();
   refreshPerSelect();
+  atualizarNumerosSobre();
   applyFilters();
   console.info(`Planilha: ${aIncluir.length} título(s) novo(s), ${atualizados} atualizado(s).`);
 }
@@ -1530,6 +1531,7 @@ populateLocSelect();
 populatePerSelect();
 renderPendentes();
 mostrarCtaFormulario();
+atualizarNumerosSobre();
 applyFilters();
 carregarPlanilha();
 atualizarBadgeLista();
@@ -1659,6 +1661,38 @@ function abrirFormulario() {
 // Este script roda no fim da página, quando o HTML já foi lido, então basta
 // executar direto — esperar por DOMContentLoaded aqui não funcionaria, porque
 // o evento já ocorreu e o ouvinte nunca seria chamado.
+// ---------------------------------------------------------------------------
+// Números da aba "Sobre": calculados a partir do próprio acervo, para nunca
+// ficarem defasados. Contam também os títulos vindos da planilha.
+// ---------------------------------------------------------------------------
+function contarMunicipios() {
+  const VARIANTES = { 'desterro': 'Florianópolis', 'itajahy': 'Itajaí' };
+  const set = new Set();
+  DATA.forEach(j => {
+    const l = String(j.l || '').trim();
+    if (!l || l === '-' || /^\[s\.?l\.?\]$/i.test(l)) return;
+    l.split('/').forEach(parte => {
+      let m = parte.trim().replace(/^\[|\]$/g, '').replace(/\s*\(.*?\)\s*/g, '').trim();
+      if (!m || /^(sc|s\.l\.)$/i.test(m)) return;
+      const chave = normalizarTexto(m);
+      set.add(VARIANTES[chave] || m);
+    });
+  });
+  return set.size;
+}
+
+function atualizarNumerosSobre() {
+  const def = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  const total = DATA.length;
+  const anos = DATA.map(j => j.y).filter(Boolean);
+  const anosFim = DATA.map(j => j.ye || j.y).filter(Boolean);
+  def('sobre-total', total.toLocaleString('pt-BR'));
+  def('sobre-periodo', anos.length ? `${Math.min(...anos)} – ${Math.max(...anosFim)}` : '—');
+  def('sobre-municipios', `${contarMunicipios()} municípios`);
+  def('sobre-digitalizados', `${DATA.filter(j => j.d).length} títulos`);
+  def('sobre-microfilme', `${DATA.filter(j => j.m).length} títulos`);
+}
+
 function mostrarCtaFormulario() {
   const cta = document.getElementById('form-cta');
   if (cta && FORM_URL) cta.style.display = 'block';
