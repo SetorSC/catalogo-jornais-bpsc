@@ -185,11 +185,9 @@
     .sidebar { border-right: none; border-bottom: 1px solid var(--border-strong); }
     .charts-grid { grid-template-columns: 1fr; }
 
-    /* Navbar: vira uma faixa rolável horizontalmente, sem sobrepor botões */
-    .navbar { flex-wrap: nowrap; overflow-x: auto; padding: 0 10px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-    .navbar::-webkit-scrollbar { display: none; }
+    /* Navbar: só reduz o respiro lateral; a rolagem já é padrão */
+    .navbar { padding: 0 10px; }
     .nav-spacer { flex: 0 0 8px; }
-    .nav-btn, .nav-lista-btn, .nav-admin-btn { flex-shrink: 0; }
 
     /* Cabeçalho: logo e título um pouco mais compactos */
     .header-top { gap: 12px; }
@@ -207,7 +205,13 @@
   }
 
   /* Navbar */
-  .navbar { background: var(--esm-dark); display: flex; align-items: center; gap: 2px; padding: 0 32px; }
+  /* A barra nunca comprime os botões: se não couber, rola na horizontal.
+     Vale para qualquer largura — inclusive celular deitado, onde antes os
+     botões de ação ficavam espremidos e o texto quebrava em várias linhas. */
+  .navbar { background: var(--esm-dark); display: flex; align-items: center; gap: 2px; padding: 0 32px;
+            flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .navbar::-webkit-scrollbar { display: none; }
+  .nav-btn, .nav-lista-btn, .nav-admin-btn { flex-shrink: 0; white-space: nowrap; }
   .nav-btn { background: none; border: none; color: rgba(255,255,255,0.70); font-size: 13px; font-family: inherit; padding: 10px 14px; cursor: pointer; border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s; white-space: nowrap; }
   #tutorial-ov { display: none; position: fixed; inset: 0; z-index: 400; background: #FBFAF7; }
   #tutorial-ov.open { display: block; }
@@ -315,6 +319,13 @@
     #print-report th:nth-child(7), #print-report td:nth-child(7) { width: 7%; }
     #print-report th:nth-child(8), #print-report td:nth-child(8) { width: 7%; }
     #print-report th, #print-report td { border: 1px solid #ccc; padding: 3px 5px; text-align: left; vertical-align: top; box-sizing: border-box; }
+    #print-report table.lista-tbl { font-size: 10px; }
+    #print-report table.lista-tbl th:nth-child(1), #print-report table.lista-tbl td:nth-child(1) { width: 5%; }
+    #print-report table.lista-tbl th:nth-child(2), #print-report table.lista-tbl td:nth-child(2) { width: 45%; }
+    #print-report table.lista-tbl th:nth-child(3), #print-report table.lista-tbl td:nth-child(3) { width: 18%; }
+    #print-report table.lista-tbl th:nth-child(4), #print-report table.lista-tbl td:nth-child(4) { width: 14%; }
+    #print-report table.lista-tbl th:nth-child(5), #print-report table.lista-tbl td:nth-child(5) { width: 9%; }
+    #print-report table.lista-tbl th:nth-child(6), #print-report table.lista-tbl td:nth-child(6) { width: 9%; }
     #print-report thead { display: table-header-group; }
     #print-report th { background: #eef4f1; font-weight: 600; }
     #print-report tr { page-break-inside: avoid; }
@@ -564,7 +575,7 @@
       <div id="lista-itens"></div>
       <div class="lista-actions" id="lista-actions" style="display:none">
         <button class="report-btn" onclick="enviarListaEmail()">📧 Enviar por e-mail</button>
-        <button class="report-btn" onclick="baixarListaTxt()">⬇ Baixar lista (.txt)</button>
+        <button class="report-btn" onclick="gerarListaPDF()">📄 Gerar PDF da lista</button>
         <button class="reset-btn" onclick="limparLista()">🗑 Limpar lista</button>
       </div>
     </div>
@@ -1142,20 +1153,38 @@ function enviarListaEmail() {
   window.location.href = `mailto:?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
 }
 
-function baixarListaTxt() {
+function gerarListaPDF() {
   const itens = DATA.filter(j => listaConsulta.has(j._uid));
   if (itens.length === 0) return;
-  const linhas = itens.map((j, i) => `${i + 1}. ${j.t}${j.s ? ' — ' + j.s : ''}\n   Município: ${j.l} | Disponibilidade: ${j.disp || '-'}`).join('\n\n');
-  const conteudo = `Lista de consulta - Catálogo de Jornais Catarinenses (BPSC)\nGerado em ${new Date().toLocaleDateString('pt-BR')}\n\n${linhas}\n`;
-  const blob = new Blob([conteudo], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'lista-consulta-bpsc.txt';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const dataGeracao = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const horaGeracao = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  const linhas = itens.map((j, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td><strong>${escHtml(j.t)}</strong>${j.s ? '<br><span style="color:#555">' + escHtml(j.s) + '</span>' : ''}</td>
+      <td>${escHtml(j.l || '-')}</td>
+      <td>${escHtml(j.disp || '-')}</td>
+      <td>${j.d ? 'Sim' : 'Não'}</td>
+      <td>${j.m ? 'Sim' : 'Não'}</td>
+    </tr>`).join('');
+
+  document.getElementById('print-report').innerHTML = `
+    <div class="report-header">
+      <h1>Lista de consulta</h1>
+      <p>Biblioteca Pública de Santa Catarina — Setor Santa Catarina</p>
+      <p>Gerada em ${dataGeracao} às ${horaGeracao} · ${itens.length} título${itens.length === 1 ? '' : 's'}</p>
+    </div>
+    <table class="lista-tbl">
+      <thead>
+        <tr><th>#</th><th>Título</th><th>Município</th><th>Período</th><th>Digital</th><th>Microfilme</th></tr>
+      </thead>
+      <tbody>${linhas}</tbody>
+    </table>
+    <div class="report-footer"><p style="margin:0 0 4px;"><strong>Atenção:</strong> as edições já digitalizadas e disponíveis na Hemeroteca Digital Catarinense não estão mais disponíveis para consulta no suporte físico (papel ou microfilme), como medida de preservação dos originais. Exceções serão analisadas pela equipe do Setor Santa Catarina.</p>Apresente esta lista no Setor Santa Catarina — 3º andar · Rua Tenente Silveira, 343, Centro, Florianópolis.</div>
+  `;
+  document.body.classList.add('print-mode');
+  window.print();
 }
 
 
@@ -1990,7 +2019,7 @@ window.addEventListener('afterprint', () => {
     <section class=&quot;slide active&quot;>
       <div class=&quot;eyebrow&quot;>Setor Santa Catarina · Biblioteca Pública de Santa Catarina</div>
       <h1>Dois séculos de imprensa catarinense,<br>agora a uma busca de distância.</h1>
-      <p class=&quot;lead&quot;>Este tutorial mostra, em cinco passos rápidos, como pesquisar entre os 1.837 jornais, revistas e boletins do acervo — e como planejar sua visita à biblioteca antes mesmo de sair de casa.</p>
+      <p class=&quot;lead&quot;>Este tutorial mostra, em cinco passos rápidos, como pesquisar entre os mais de 1.800 jornais, revistas e boletins do acervo — e como planejar sua visita à biblioteca antes mesmo de sair de casa.</p>
       <div class=&quot;steps&quot;>
         <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span><strong>1.</strong> Buscar e filtrar títulos</span></div>
         <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span><strong>2.</strong> Ler as informações de cada jornal</span></div>
@@ -2042,10 +2071,12 @@ window.addEventListener('afterprint', () => {
           <h2>Leia o card de cada título</h2>
           <p class=&quot;lead&quot;>Cada cor conta uma parte da história: onde circulou, quando, com que frequência — e como o acervo pode ser consultado hoje.</p>
           <div class=&quot;steps&quot;>
-            <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span><strong style=&quot;color:var(--azul)&quot;>Azul</strong> = município · <strong style=&quot;color:var(--roxo)&quot;>roxo</strong> = período · <strong style=&quot;color:var(--cinza)&quot;>cinza</strong> = periodicidade.</span></div>
-            <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span><strong style=&quot;color:var(--esm-dark)&quot;>Verde</strong> = há edições digitalizadas · <strong style=&quot;color:var(--ambar)&quot;>âmbar</strong> = existe microfilme.</span></div>
+            <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span><strong style=&quot;color:var(--esm-dark)&quot;>Verde</strong> = município · <strong style=&quot;color:var(--roxo)&quot;>roxo</strong> = período · <strong style=&quot;color:var(--cinza)&quot;>cinza</strong> = periodicidade.</span></div>
+            <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span><strong style=&quot;color:var(--azul)&quot;>Azul</strong> = há edições digitalizadas · <strong style=&quot;color:var(--ambar)&quot;>âmbar</strong> = existe microfilme.</span></div>
             <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span>Clique no card para abrir a <strong>disponibilidade ano a ano</strong>, avisos de digitalização e interdições.</span></div>
             <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span>A etiqueta <strong>📄 Edição em papel</strong> aparece nos anos que ainda não foram digitalizados — mesmo em títulos que já têm parte do acervo on-line.</span></div>
+            <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span>Na lista ano a ano, os anos <strong style=&quot;color:var(--azul)&quot;>em azul</strong> já estão digitalizados; os demais existem apenas em papel ou microfilme.</span></div>
+            <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span>Ao pé do card, uma nota lembra que as edições já digitalizadas <strong>não são mais servidas em papel</strong>, como medida de preservação dos originais.</span></div>
             <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span>Nos títulos digitalizados, o botão <strong style=&quot;color:var(--esm-dark)&quot;>↗ Abrir na Hemeroteca Digital</strong> leva direto ao periódico; quando não há link direto, <strong style=&quot;color:var(--esm-dark)&quot;>🔍 Buscar na Hemeroteca Digital</strong> abre a busca do acervo.</span></div>
           </div>
         </div>
@@ -2086,7 +2117,7 @@ window.addEventListener('afterprint', () => {
           <div class=&quot;steps&quot;>
             <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span>A lista fica guardada <strong>no seu navegador</strong>, mesmo se você fechar a página.</span></div>
             <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span><strong>Enviar por e-mail</strong> abre seu programa de e-mail com a lista pronta.</span></div>
-            <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span><strong>Baixar (.txt)</strong> salva um arquivo simples para levar à biblioteca.</span></div>
+            <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span><strong>Gerar PDF da lista</strong> monta uma folha pronta para imprimir ou salvar e levar à biblioteca.</span></div>
           </div>
         </div>
         <div class=&quot;mock&quot;>
@@ -2100,7 +2131,7 @@ window.addEventListener('afterprint', () => {
           </div>
           <div class=&quot;m-actions&quot;>
             <div class=&quot;m-action&quot;>📧 Enviar por e-mail</div>
-            <div class=&quot;m-action&quot;>⬇ Baixar lista (.txt)</div>
+            <div class=&quot;m-action&quot;>📄 Gerar PDF da lista</div>
           </div>
         </div>
       </div>
@@ -2112,10 +2143,10 @@ window.addEventListener('afterprint', () => {
         <div>
           <div class=&quot;eyebrow&quot;>Passo 4</div>
           <h2>Gere relatórios em PDF</h2>
-          <p class=&quot;lead&quot;>Na aba <strong>Relatórios</strong>, o catálogo inteiro — ou apenas as novas inserções — sai diagramado em A4 paisagem, pronto para imprimir ou salvar como PDF pelo próprio navegador.</p>
+          <p class=&quot;lead&quot;>Na aba <strong>Imprimir Catálogo</strong>, o acervo inteiro sai diagramado em A4 paisagem, pronto para imprimir ou salvar como PDF pelo próprio navegador.</p>
           <div class=&quot;steps&quot;>
             <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span>Na janela de impressão, escolha <strong>“Salvar como PDF”</strong> no destino.</span></div>
-            <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span>A aba <strong>Atualizações</strong> mostra o histórico do que entrou de novo no acervo.</span></div>
+            <div class=&quot;step&quot;><span class=&quot;dot&quot;></span><span>A aba <strong>Atualizações</strong> mostra o histórico do que entrou de novo no acervo — e gera o próprio relatório dos títulos incluídos.</span></div>
           </div>
         </div>
         <div class=&quot;mock&quot;>
