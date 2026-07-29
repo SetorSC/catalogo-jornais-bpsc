@@ -20,7 +20,19 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Jornais SC">
-<meta name="description" content="Acervo de jornais e periódicos da Biblioteca Pública de Santa Catarina — 1831 a 2026."><style>
+<meta name="description" content="Acervo de jornais e periódicos da Biblioteca Pública de Santa Catarina — 1831 a 2026.">
+<script>
+  // Registra o service worker (arquivo sw.js). É ele que faz o celular tratar
+  // o catálogo como aplicativo de verdade, sem a marca do navegador no ícone.
+  // Se falhar por qualquer motivo, o catálogo continua funcionando igual.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch((e) => {
+        console.info('Service worker não registrado; o catálogo funciona normalmente.', e);
+      });
+    });
+  }
+</script><style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
   :root {
     --esm:          #1A7A52;
@@ -282,6 +294,9 @@
   .inst-passos strong { color: var(--esm-dark); }
   .inst-passos ol { margin: 6px 0 0; padding-left: 20px; }
   .inst-passos li { margin-bottom: 5px; }
+  .inst-outro { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border); }
+  .inst-outro p { font-size: 12.5px; color: var(--text-secondary); line-height: 1.55; margin: 0 0 10px; }
+  .inst-copiado { display: none; font-size: 12px; color: var(--esm-dark); font-weight: 600; margin-left: 10px; }
   .inst-acoes { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; flex-wrap: wrap; }
   #inst-nativo { margin-bottom: 14px; }
   .contact-row { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--text-secondary); }
@@ -598,6 +613,11 @@
         <button class="btn-primary" onclick="instalarAgora()">⬇ Instalar agora</button>
       </div>
       <div id="inst-passos" class="inst-passos"></div>
+      <div class="inst-outro">
+        <p id="inst-outro-txt"></p>
+        <button class="report-btn" onclick="copiarEndereco()">🔗 Copiar endereço para enviar</button>
+        <span id="inst-copiado" class="inst-copiado">endereço copiado ✓</span>
+      </div>
       <div class="inst-acoes">
         <button class="btn-secondary" onclick="fecharConviteInstalar()">Agora não</button>
         <button class="btn-secondary" onclick="fecharConviteInstalar(true)">Não mostrar de novo</button>
@@ -1635,9 +1655,34 @@ function passosDoAparelho() {
     <li>Marque <strong>“Abrir como janela”</strong> e clique em <strong>Criar</strong>.</li></ol>`;
 }
 
+function textoOutroAparelho() {
+  const ua = navigator.userAgent;
+  const noCelular = /iPad|iPhone|iPod|Android/.test(ua);
+  if (noCelular) {
+    return 'Você também pode deixar o catálogo na <strong>área de trabalho do computador</strong>: '
+         + 'abra este mesmo endereço no Chrome ou Edge e siga o mesmo caminho por lá.';
+  }
+  return 'Você também pode deixar o catálogo na <strong>tela inicial do celular</strong>: '
+       + 'abra este mesmo endereço no navegador do telefone e o convite aparecerá por lá. '
+       + 'Se quiser, copie o endereço abaixo e mande para você mesma — ou para quem mais quiser indicar o catálogo.';
+}
+
+function copiarEndereco() {
+  const url = window.location.href.split('#')[0];
+  const aviso = document.getElementById('inst-copiado');
+  const mostrar = () => { if (aviso) { aviso.style.display = 'inline'; setTimeout(() => aviso.style.display = 'none', 2500); } };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(url).then(mostrar).catch(() => prompt('Copie o endereço:', url));
+  } else {
+    prompt('Copie o endereço:', url);
+  }
+}
+
 function abrirConviteInstalar() {
   const passos = document.getElementById('inst-passos');
   if (passos) passos.innerHTML = passosDoAparelho();
+  const outro = document.getElementById('inst-outro-txt');
+  if (outro) outro.innerHTML = textoOutroAparelho();
   const nativo = document.getElementById('inst-nativo');
   if (nativo) nativo.style.display = promptInstalacao ? 'block' : 'none';
   openModal('modal-instalar');
